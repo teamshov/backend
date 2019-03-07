@@ -1,0 +1,4 @@
+main.exe
+node_modules/**
+.cache/**
+dist/**

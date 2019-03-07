@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Hello World</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://unpkg.com/konva@2.4.2/konva.min.js"></script>
+
+<meta name="keywords" content="" />
+<meta name="description" content="" />
+<link href="http://fonts.googleapis.com/css?family=Varela" rel="stylesheet" />
+<link href="default.css" rel="stylesheet" type="text/css" media="all" />
+<link href="fonts.css" rel="stylesheet" type="text/css" media="all" />
+</head>
+<body>
+
+    <div class="container" id="headerbar">
+    <input type="file" id="floorplan" accept="image/*">
+
+    Select Beacon:
+    <select id="beaconlist">
+        <option value="">Select Beacon</option>
+    </select>
+
+    <input type="button" value="save" id="save">
+    </div>
+    <div id="container" class="container"></div>
+    <script src="ts/editor.ts"></script>
+</body>
+</html>
