@@ -1,30 +1,31 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
   <title>Hello World</title>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://unpkg.com/konva@2.4.2/konva.min.js"></script>
-
-<meta name="keywords" content="" />
-<meta name="description" content="" />
-<link href="http://fonts.googleapis.com/css?family=Varela" rel="stylesheet" />
-<link href="default.css" rel="stylesheet" type="text/css" media="all" />
-<link href="fonts.css" rel="stylesheet" type="text/css" media="all" />
+  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
 </head>
+
 <body>
-
-    <div class="container" id="headerbar">
-    <input type="file" id="floorplan" accept="image/*">
-
-    Select Beacon:
-    <select id="beaconlist">
-        <option value="">Select Beacon</option>
+  <script src="js/index.js"></script>
+  <div class="w3-sidebar w3-bar-block w3-border-right" style="display:none" id="mySidebar">
+    <button onclick="close_tools()" class="w3-bar-item w3-large w3-blue w3-button">☰</button>
+    <select id="beacons" class="w3-bar-item w3-button shov-selectlist">
+      <option value="">Add Beacon</option>
     </select>
 
-    <input type="button" value="save" id="save">
-    </div>
-    <div id="container" class="container"></div>
-    <script src="ts/editor.ts"></script>
+    <input type="button" class="w3-bar-item w3-button" value="Save" onclick="save()">
+  </div>
+  <div class="w3-blue" id="topbar">
+    <button class="w3-button w3-large w3-blue w3-bar-block" onclick="open_tools()">☰</button>
+  </div>
+  <div id="container"></div>
+  <script src="ts/editor.ts"></script>
 </body>
+
 </html>
