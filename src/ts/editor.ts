@@ -1,9 +1,22 @@
 import Konva from 'konva';
 import $ from 'jquery';
-
+import { Line } from 'konva/types/shapes/Line';
 
 class Vec2 {
     constructor(public x: number, public y: number) {}
+}
+
+const scale: Vec2 = new Vec2(4.697624908, -4.697624908);
+const origin: Vec2 = new Vec2(0.32, 264.18);
+const iscale: Vec2 = new Vec2(4, 4);
+
+const toKPos = function (pos: Vec2): Vec2 {
+    return new Vec2((pos.x * scale.x + origin.x)*iscale.x,(pos.y * scale.y + origin.y)*iscale.y);
+}
+
+const toPos = function (pos: Vec2): Vec2 {
+    return new Vec2((pos.x/iscale.x - origin.x) / scale.x, (pos.y/iscale.y - origin.y) / scale.y);
+
 }
 
 class ELabel {
@@ -44,16 +57,231 @@ class ELabel {
     }
 }
 
-const scale: Vec2 = new Vec2(4.697624908, -4.697624908);
-const origin: vec2 = new Vec2(0.32, 264.18);
-const iscale: Vec2 = new Vec2(2, 2);
+class NLine {
+    line : any;
+    constructor(public n1 : Node, public n2 : Node) {
+        let p1 = this.n1.konvaObj.position();
+        let p2 = this.n2.konvaObj.position();
+        let arr : number[] = [p1.x, p1.y, p2.x, p2.y];
+        this.line = new Konva.Line({
+            points: arr,
+            stroke: 'black',
+            strokeWidth: 1,
+        });
 
-const toKPos = function (pos: Vec2): Vec2 {
-    return new Vec2((pos.x * scale.x + origin.x)*iscale.x,(pos.y * scale.y + origin.y)*iscale.y);
+        this.n1.konvaObj.on("dragmove", () => this.onDragmove());
+        this.n2.konvaObj.on("dragmove", () => this.onDragmove());
+    }
+
+    onDragmove() {
+        if(this.n1.destroyed || this.n2.destroyed) {
+            this.line.destroy();
+            return;
+        }
+        let p1 = this.n1.konvaObj.position();
+        let p2 = this.n2.konvaObj.position();
+        let arr : number[] = [p1.x, p1.y, p2.x, p2.y];
+        this.line.points(arr);
+    }
 }
 
-const toPos = function (pos: Vec2): Vec2 {
-    return new Vec2((pos.x/iscale.x - origin.x) / scale.x, (pos.y/iscale.y - origin.y) / scale.y);
+class Node {
+    cNodes : Set<number> = new Set<number>();
+    selected : boolean = false;
+    konvaObj : any;
+    dragged = false;
+    destroyed = false;
+
+    constructor(public graph : ShovGraph, pos : Vec2, public index : number, nodes : number[] = null) {
+        let kpos = toKPos(pos);
+        this.konvaObj = new Konva.Circle({
+            x: kpos.x,
+            y: kpos.y,
+            radius: 12,
+            fill: 'yellow',
+            stroke: 'black',
+            strokeWidth: 2,
+            draggable: true,
+        });
+
+        this.konvaObj.on('mouseup touchend', () => this.onClick());
+        this.konvaObj.on('dragstart', () => this.dragStart());
+        this.konvaObj.on('dragend', () => this.dragEnd());
+
+        if(nodes != null) {
+            this.cNodes = new Set<number>(nodes);
+        }
+    }
+
+    setPos(pos : Vec2) {
+        this.konvaObj.position(pos);
+    }
+
+    getPos() : Vec2 {
+        return this.konvaObj.position();
+    }
+
+    onClick() {
+        if(!this.dragged) {
+            this.graph.handleClick(this);
+        }
+    }
+
+    dragStart() {
+        this.dragged = true;
+    }
+    dragEnd() {
+        this.dragged = false;
+    }
+
+    addNode(n : number) {
+        if(!this.cNodes.has(n)) {
+            this.cNodes.add(n);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    toJSON() {
+        return {"pos": toPos(this.getPos()), "cnodes": Array.from(this.cNodes)};
+    }
+ }
+
+class ShovGraph {
+    layer : any;
+    nodes : Node[] = [];
+    rmIndices : number[] = [];
+
+    selectednode : Node = null;
+
+    constructor(public floor : Floor, src : string = null) {
+        this.layer = new Konva.Layer({});
+        floor.editor.stage.add(this.layer);
+        
+        if(src) {
+            $.get(src, (resp) => this.loadGraph(resp));
+        }
+
+        floor.layer.on("click", ()=>{this.onCreateNode()});
+        this.layer.draw();
+    }
+
+    handleClick(node : Node) {
+        if(this.selectednode == null){
+            this.selectednode = node;
+            node.konvaObj.fill("red");
+        } else if(this.selectednode != node){
+            this.connectNode(this.selectednode, node);
+            this.selectednode.konvaObj.fill("yellow");
+            this.selectednode = null;
+        } else {
+            this.selectednode.konvaObj.fill("yellow");
+            this.selectednode = null;
+            this.removeNode(node);
+        }
+        this.layer.draw();
+    }
+
+    connectNode(n1 : Node, n2 : Node) {
+        let r1 = n1.addNode(n2.index);
+        let r2 = n2.addNode(n1.index);
+        if(r1 && r2) {
+            let line = new NLine(n1, n2);
+            this.layer.add(line.line);
+        }
+    }
+
+    loadGraph(resp) {
+        let arr = resp["nodes"];
+        let rmarr = resp["rmIndices"];
+        if(rmarr) {
+            this.rmIndices = rmarr;
+        }
+        this.nodes = [];
+
+        for(let n of arr) {
+            if(!n) {
+                this.nodes.push(null);
+                continue;
+            }
+                
+            let pos = n["pos"];
+            let cnodes = n["cnodes"]
+
+            let i = this.nodes.length;
+            n = new Node(this, pos, i, cnodes);
+            this.layer.add(n.konvaObj);
+            this.nodes.push(n);
+        }
+
+        let added : Set<number> = new Set<number>();
+        for(let n of this.nodes) {
+            if(!n || added.has(n.index)) { continue; }
+
+            added.add(n.index);
+            for(let nindex of Array.from(n.cNodes)) {
+                if(added.has(nindex)) { continue; }
+                console.log(nindex);
+                let n2 = this.nodes[nindex];
+                let line = new NLine(n, n2);
+                this.layer.add(line.line);
+            }
+        }
+    }
+
+    save(url) {
+        let json = '{"nodes":'+JSON.stringify(this.nodes) + ',"rmIndices":' + JSON.stringify(this.rmIndices) + '}';
+        console.log(json);
+        $.ajax({
+            url: url, 
+            type: 'PUT',
+            data: json
+          });
+    }
+
+    addNode(pos : Vec2, cnodes : number[] = null) {
+        let n = null;
+        if(this.rmIndices.length > 0) {
+            let i = this.rmIndices.pop();
+            n = new Node(this, pos, i, cnodes);
+            this.layer.add(n.konvaObj);
+            this.nodes[i] = n;
+        }
+        else {
+            let i = this.nodes.length;
+            n = new Node(this, pos, i, cnodes);
+            this.layer.add(n.konvaObj);
+            this.nodes.push(n);
+        } 
+        this.layer.draw();
+    }
+
+    removeNode(n : Node) {
+        let i = n.index;
+        for(let nindex of Array.from(n.cNodes)) {
+            let n2 = this.nodes[nindex];
+            n2.cNodes.delete(i);
+        }
+        n.konvaObj.destroy();
+        this.nodes[i] = null;
+        this.rmIndices.push(i);
+        n.destroyed = true;
+    }
+
+    onCreateNode() {
+        let stage = this.floor.editor.stage;
+        // what is transform of parent element?
+       var transform = stage.getAbsoluteTransform().copy();
+
+        // to detect relative position we need to invert transform
+        transform.invert();
+
+        // now we find relative point
+        var pos = transform.point(stage.getPointerPosition());
+
+        this.addNode(toPos(pos));
+    }
 }
 
 class ShovItem {
@@ -74,7 +302,9 @@ class ShovItem {
         $.ajax({
             url: url, 
             type: 'PUT',
-            data: JSON.stringify({"xpos": pos.x, "ypos": pos.y})
+            data: JSON.stringify({"xpos": pos.x, "ypos": pos.y}),
+            success: () => {console.log("save successful")},
+            error: () => {console.error("save failed")}
           });
     }
 }
@@ -83,9 +313,9 @@ class ShovItemManager {
     layer: any;
     ShovItems: ShovItem[] = [];
 
-    constructor(public editor: Editor, public dburl: string, public color: string) {
+    constructor(public floor: Floor, public dburl: string, public color: string) {
         this.layer = new Konva.Layer({});
-        editor.stage.add(this.layer);
+        floor.editor.stage.add(this.layer);
         $.get('http://omaraa.ddns.net:62027/db/all/' + dburl, (resp) => this.loadItems(resp));
     }
 
@@ -110,10 +340,13 @@ class ShovItemManager {
     }
 }
 
-class Building {
+class Floor {
     layer: any;
     imageObj: any;
     floorplan: any;
+    beacons: ShovItemManager;
+    pies: ShovItemManager;
+    graph : ShovGraph;
     constructor(public editor: Editor, public src: string) {
         this.layer = new Konva.Layer({});
         editor.stage.add(this.layer);
@@ -124,14 +357,24 @@ class Building {
                 x: 0,
                 y: 0,
                 image: this.imageObj,
-                width: this.imageObj.width*iscale.x,
-                height: this.imageObj.height*iscale.y,
+                width: this.imageObj.width*iscale.x/11.25,
+                height: this.imageObj.height*iscale.y/11.25,
                 //draggable: true
             });
             this.layer.add(this.floorplan);
             this.layer.draw();
         };
         this.imageObj.src = src
+
+        this.beacons = new ShovItemManager(this, "beacons", "black");
+        this.pies = new ShovItemManager(this, "pies", "red");
+        this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+    }
+
+    save() {
+        this.beacons.save();
+        this.pies.save();
+        this.graph.save("http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
     }
 
 
@@ -140,8 +383,8 @@ class Building {
 class Editor {
     stage: any;
     topbarElem: any;
-    beacons: ShovItemManager;
-    pies: ShovItemManger;
+    
+    floor : Floor;
     constructor(public container: any, public topbarelem: any) {
         this.stage = new Konva.Stage({
             container: container, // id of container <div>
@@ -157,14 +400,15 @@ class Editor {
         layer.add(new Konva.Circle({
             x: 0,
             y: 0,
-            fill: "red",
-            radius: 10
+            radius: 8,
+            fill: 'yellow',
+            stroke: 'black',
+            strokeWidth: 2
         }));
 
         this.stage.add(layer);
-        this.bg = new Building(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1.svg");
-        this.beacons = new ShovItemManager(this, "beacons", "black");
-        this.pies = new ShovItemManager(this, "pies", "red");
+        this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1.png");
+        
 
         this.stage.draw();
 
@@ -172,8 +416,7 @@ class Editor {
     }
 
     save() {
-        this.beacons.save();
-        this.pies.save();
+        this.floor.save();
     }
 }
 
