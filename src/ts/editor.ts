@@ -1,5 +1,5 @@
 import Konva from 'konva';
-import $ from 'jquery';
+import 'jquery';
 import { Line } from 'konva/types/shapes/Line';
 
 class Vec2 {
@@ -17,6 +17,10 @@ const toKPos = function (pos: Vec2): Vec2 {
 const toPos = function (pos: Vec2): Vec2 {
     return new Vec2((pos.x/iscale.x - origin.x) / scale.x, (pos.y/iscale.y - origin.y) / scale.y);
 
+}
+
+declare global {
+    interface Window { save : any; }
 }
 
 class ELabel {
@@ -71,6 +75,9 @@ class NLine {
 
         this.n1.konvaObj.on("dragmove", () => this.onDragmove());
         this.n2.konvaObj.on("dragmove", () => this.onDragmove());
+
+        n1.lines.add(this);
+        n2.lines.add(this);
     }
 
     onDragmove() {
@@ -83,6 +90,17 @@ class NLine {
         let arr : number[] = [p1.x, p1.y, p2.x, p2.y];
         this.line.points(arr);
     }
+
+    destroy(n : Node) {
+        let othern = this.n1;
+        if(n == this.n1) {
+            othern == this.n2
+        }
+
+        othern.lines.delete(this);
+        n.lines.delete(this);
+        this.line.destroy();
+    }
 }
 
 class Node {
@@ -91,6 +109,7 @@ class Node {
     konvaObj : any;
     dragged = false;
     destroyed = false;
+    lines : Set<NLine> = new Set();
 
     constructor(public graph : ShovGraph, pos : Vec2, public index : number, nodes : number[] = null) {
         let kpos = toKPos(pos);
@@ -144,14 +163,14 @@ class Node {
     }
 
     toJSON() {
-        return {"pos": toPos(this.getPos()), "cnodes": Array.from(this.cNodes)};
+        return {"pos": toPos(this.getPos()), "cnodes": Array.from(this.cNodes), "index": this.index};
     }
  }
 
 class ShovGraph {
     layer : any;
-    nodes : Node[] = [];
-    rmIndices : number[] = [];
+    nodes : Map<number, Node> = new Map();
+    nindex : number = 0;
 
     selectednode : Node = null;
 
@@ -160,7 +179,7 @@ class ShovGraph {
         floor.editor.stage.add(this.layer);
         
         if(src) {
-            $.get(src, (resp) => this.loadGraph(resp));
+            $.get(src, (resp : any) => this.loadGraph(resp));
         }
 
         floor.layer.on("click", ()=>{this.onCreateNode()});
@@ -192,47 +211,36 @@ class ShovGraph {
         }
     }
 
-    loadGraph(resp) {
+    loadGraph(resp : any) {
         let arr = resp["nodes"];
-        let rmarr = resp["rmIndices"];
-        if(rmarr) {
-            this.rmIndices = rmarr;
-        }
-        this.nodes = [];
-
-        for(let n of arr) {
-            if(!n) {
-                this.nodes.push(null);
-                continue;
-            }
-                
+        let mp = new Map<Number, any>(arr);
+        for(let n of mp.values()) {       
             let pos = n["pos"];
             let cnodes = n["cnodes"]
-
-            let i = this.nodes.length;
-            n = new Node(this, pos, i, cnodes);
-            this.layer.add(n.konvaObj);
-            this.nodes.push(n);
+            let index = n["index"]
+            if(index > this.nindex)
+                this.nindex = index;
+            this.addNode(pos, cnodes, index);
         }
+        this.nindex++;
 
         let added : Set<number> = new Set<number>();
-        for(let n of this.nodes) {
-            if(!n || added.has(n.index)) { continue; }
+        for(let n of this.nodes.values()) {
+            if(added.has(n.index)) { continue; }
 
             added.add(n.index);
             for(let nindex of Array.from(n.cNodes)) {
                 if(added.has(nindex)) { continue; }
-                console.log(nindex);
-                let n2 = this.nodes[nindex];
+
+                let n2 = this.nodes.get(nindex);
                 let line = new NLine(n, n2);
                 this.layer.add(line.line);
             }
         }
     }
 
-    save(url) {
-        let json = '{"nodes":'+JSON.stringify(this.nodes) + ',"rmIndices":' + JSON.stringify(this.rmIndices) + '}';
-        console.log(json);
+    save(url : any) {
+        let json = '{"nodes":'+JSON.stringify(Array.from(this.nodes)) + '}';
         $.ajax({
             url: url, 
             type: 'PUT',
@@ -240,33 +248,28 @@ class ShovGraph {
           });
     }
 
-    addNode(pos : Vec2, cnodes : number[] = null) {
-        let n = null;
-        if(this.rmIndices.length > 0) {
-            let i = this.rmIndices.pop();
-            n = new Node(this, pos, i, cnodes);
-            this.layer.add(n.konvaObj);
-            this.nodes[i] = n;
+    addNode(pos : Vec2, cnodes : number[] = null, index : number = null) {
+        let i = index;
+        if(!index) {
+            i = this.nindex++;
         }
-        else {
-            let i = this.nodes.length;
-            n = new Node(this, pos, i, cnodes);
-            this.layer.add(n.konvaObj);
-            this.nodes.push(n);
-        } 
+        let n = new Node(this, pos, i, cnodes);
+        this.layer.add(n.konvaObj);
+        this.nodes.set(n.index, n);
         this.layer.draw();
     }
 
     removeNode(n : Node) {
         let i = n.index;
-        for(let nindex of Array.from(n.cNodes)) {
-            let n2 = this.nodes[nindex];
+        for(let nindex of n.cNodes) {
+            let n2 = this.nodes.get(nindex);
             n2.cNodes.delete(i);
         }
+        for(let line of n.lines) {
+            line.destroy(n);
+        }
         n.konvaObj.destroy();
-        this.nodes[i] = null;
-        this.rmIndices.push(i);
-        n.destroyed = true;
+        this.nodes.delete(n.index);
     }
 
     onCreateNode() {
@@ -289,14 +292,13 @@ class ShovItem {
     constructor(public doc: any, color: string) {
         let pos = new Vec2(doc["xpos"], doc["ypos"]);
         this.label = new ELabel(toKPos(pos), doc["_id"], color);
-        console.log(this.doc);
     }
 
     getKonvaObj() {
         return this.label.label;
     }
 
-    save(url) {
+    save(url : any) {
         let kpos = this.label.label.position()
         let pos = toPos(new Vec2(kpos.x, kpos.y));
         $.ajax({
@@ -319,14 +321,14 @@ class ShovItemManager {
         $.get('http://omaraa.ddns.net:62027/db/all/' + dburl, (resp) => this.loadItems(resp));
     }
 
-    loadItems(resp) {
+    loadItems(resp : any) {
         let ids: string[] = resp;
         for (let id of ids) {
             $.get('http://omaraa.ddns.net:62027/db/' + this.dburl + '/' + id, (resp) => this.loadItem(resp));
         }
     }
 
-    loadItem(doc) {
+    loadItem(doc : any) {
         let item = new ShovItem(doc, this.color);
         this.ShovItems.push(item);
         this.layer.add(item.getKonvaObj());
