@@ -18,6 +18,11 @@
     <select id="tools" class="w3-bar-item w3-button shov-selectlist">
       <option value="">Tools</option>
     </select>
+    <select id="nodeType" class="w3-bar-item w3-button shov-selectlist" onchange="setNodeType(this)">
+      <option value="">NodeType</option>
+      <option value="">None</option>
+      <option value="exit">Exit</option>
+    </select>
 
     <input type="button" class="w3-bar-item w3-button" value="Save" onclick="save()">
   </div>

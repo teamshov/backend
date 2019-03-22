@@ -20,7 +20,10 @@ const toPos = function (pos: Vec2): Vec2 {
 }
 
 declare global {
-    interface Window { save : any; }
+    interface Window { 
+        save : any; 
+        setNodeType : any;
+    }
 }
 
 class ELabel {
@@ -110,18 +113,24 @@ class Node {
     dragged = false;
     destroyed = false;
     lines : Set<NLine> = new Set();
+    fill : string;
 
-    constructor(public graph : ShovGraph, pos : Vec2, public index : number, nodes : number[] = null) {
+    constructor(public graph : ShovGraph, pos : Vec2, public index : number, public type : string, nodes : number[] = null) {
         let kpos = toKPos(pos);
+        this.fill = 'yellow';
+        if(this.type == "exit") {
+            this.fill = 'green';
+        }
         this.konvaObj = new Konva.Circle({
             x: kpos.x,
             y: kpos.y,
             radius: 12,
-            fill: 'yellow',
+            fill: this.fill,
             stroke: 'black',
             strokeWidth: 2,
             draggable: true,
         });
+
 
         this.konvaObj.on('mouseup touchend', () => this.onClick());
         this.konvaObj.on('dragstart', () => this.dragStart());
@@ -163,7 +172,7 @@ class Node {
     }
 
     toJSON() {
-        return {"pos": toPos(this.getPos()), "cnodes": Array.from(this.cNodes), "index": this.index};
+        return {"pos": toPos(this.getPos()), "cnodes": Array.from(this.cNodes), "index": this.index, "type": this.type};
     }
  }
 
@@ -171,6 +180,8 @@ class ShovGraph {
     layer : any;
     nodes : Map<number, Node> = new Map();
     nindex : number = 0;
+    nodeType : string = '';
+    dragged : boolean = false;
 
     selectednode : Node = null;
 
@@ -182,8 +193,14 @@ class ShovGraph {
             $.get(src, (resp : any) => this.loadGraph(resp));
         }
 
-        floor.layer.on("click", ()=>{this.onCreateNode()});
+        floor.layer.on("mouseup touchend", ()=>{this.onStageClick()});
+        floor.editor.stage.on('dragstart', () => this.dragStart());
+        floor.editor.stage.on('dragend', () => this.dragEnd());
         this.layer.draw();
+
+        window.setNodeType = (s:any) => {this.setNodeType(s)};
+        let sinput = <HTMLInputElement>document.getElementById("nodeType");
+        this.nodeType = sinput.value;
     }
 
     handleClick(node : Node) {
@@ -192,14 +209,20 @@ class ShovGraph {
             node.konvaObj.fill("red");
         } else if(this.selectednode != node){
             this.connectNode(this.selectednode, node);
-            this.selectednode.konvaObj.fill("yellow");
+            this.selectednode.konvaObj.fill(this.selectednode.fill);
             this.selectednode = null;
         } else {
-            this.selectednode.konvaObj.fill("yellow");
+            this.selectednode.konvaObj.fill(this.selectednode.fill);
             this.selectednode = null;
             this.removeNode(node);
         }
         this.layer.draw();
+    }
+    dragStart() {
+        this.dragged = true;
+    }
+    dragEnd() {
+        this.dragged = false;
     }
 
     connectNode(n1 : Node, n2 : Node) {
@@ -213,14 +236,14 @@ class ShovGraph {
 
     loadGraph(resp : any) {
         let arr = resp["nodes"];
-        let mp = new Map<Number, any>(arr);
-        for(let n of mp.values()) {       
+        for(let n of arr) {       
             let pos = n["pos"];
             let cnodes = n["cnodes"]
             let index = n["index"]
+            let type = n["type"]
             if(index > this.nindex)
                 this.nindex = index;
-            this.addNode(pos, cnodes, index);
+            this.addNode(pos, type, cnodes, index);
         }
         this.nindex++;
 
@@ -240,7 +263,7 @@ class ShovGraph {
     }
 
     save(url : any) {
-        let json = '{"nodes":'+JSON.stringify(Array.from(this.nodes)) + '}';
+        let json = '{"nodes":'+JSON.stringify(Array.from(this.nodes.values())) + '}';
         $.ajax({
             url: url, 
             type: 'PUT',
@@ -248,12 +271,12 @@ class ShovGraph {
           });
     }
 
-    addNode(pos : Vec2, cnodes : number[] = null, index : number = null) {
+    addNode(pos : Vec2, type : string, cnodes : number[] = null, index : number = null) {
         let i = index;
         if(!index) {
             i = this.nindex++;
         }
-        let n = new Node(this, pos, i, cnodes);
+        let n = new Node(this, pos, i, type, cnodes);
         this.layer.add(n.konvaObj);
         this.nodes.set(n.index, n);
         this.layer.draw();
@@ -272,18 +295,36 @@ class ShovGraph {
         this.nodes.delete(n.index);
     }
 
-    onCreateNode() {
-        let stage = this.floor.editor.stage;
-        // what is transform of parent element?
-       var transform = stage.getAbsoluteTransform().copy();
+    onStageClick() {
+        if (!this.dragged) {
 
-        // to detect relative position we need to invert transform
-        transform.invert();
+            if (this.selectednode) {
+                this.selectednode.konvaObj.fill(this.selectednode.fill);
+                this.selectednode.konvaObj.draw()
+                this.selectednode = null;
 
-        // now we find relative point
-        var pos = transform.point(stage.getPointerPosition());
+                return;
+            } else {
+                let stage = this.floor.editor.stage;
+                // what is transform of parent element?
+                var transform = stage.getAbsoluteTransform().copy();
 
-        this.addNode(toPos(pos));
+                // to detect relative position we need to invert transform
+                transform.invert();
+
+                // now we find relative point
+                var pos = transform.point(stage.getPointerPosition());
+
+                this.addNode(toPos(pos), this.nodeType);
+                return;
+            }
+        }
+    }
+
+    setNodeType(selectObj : any) {
+        console.log(selectObj)
+        let val = selectObj.value;
+        this.nodeType = val;
     }
 }
 
