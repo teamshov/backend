@@ -1,6 +1,7 @@
 import Konva from 'konva';
-import 'jquery';
-import { Line } from 'konva/types/shapes/Line';
+import $ from 'jquery';
+import { Button, Icons } from 'construct-ui';
+import m from 'mithril';
 
 class Vec2 {
     constructor(public x: number, public y: number) {}
@@ -48,7 +49,6 @@ class ELabel {
             lineJoin: 'round',
             shadowColor: 'black',
             shadowBlur: 10,
-            shadowOffset: 10,
             shadowOpacity: 0.5
         });
 
@@ -359,7 +359,7 @@ class ShovItemManager {
     constructor(public floor: Floor, public dburl: string, public color: string) {
         this.layer = new Konva.Layer({});
         floor.editor.stage.add(this.layer);
-        $.get('http://omaraa.ddns.net:62027/db/all/' + dburl, (resp) => this.loadItems(resp));
+        $.get('http://omaraa.ddns.net:62027/db/all/' + dburl, (resp : any) => this.loadItems(resp));
     }
 
     loadItems(resp : any) {
@@ -470,3 +470,16 @@ $(document).ready(() => {
         let e = new Editor(container, topbar);
     })
 })
+
+const page = {
+    view() {
+      return m(Button, {
+        iconLeft: Icons.FILTER,
+        intent: 'primary',
+        label: 'Button',
+        size: 'sm'
+      });
+    }
+  }
+  
+  m.mount(document.getElementById("m"), page)

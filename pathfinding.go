@@ -2,6 +2,8 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -10,8 +12,8 @@ import (
 )
 
 type Node struct {
-	cNodes []int
-	index  int
+	cNodes []uint
+	index  uint
 	x      float64
 	y      float64
 	ntype  string
@@ -22,12 +24,12 @@ func createNode(e map[string]interface{}) *Node {
 	n = new(Node)
 
 	cnodes := e["cnodes"].([]interface{})
-	n.cNodes = make([]int, len(cnodes))
+	n.cNodes = make([]uint, len(cnodes))
 	for i, elem := range cnodes {
-		n.cNodes[i] = int(elem.(float64))
+		n.cNodes[i] = uint(elem.(float64))
 	}
 
-	n.index = int(e["index"].(float64))
+	n.index = uint(e["index"].(float64))
 
 	pos := e["pos"].(map[string]interface{})
 	n.x = pos["x"].(float64)
@@ -44,23 +46,30 @@ func (n *Node) getDist(x float64, y float64) float64 {
 	return math.Sqrt(xx + yy)
 }
 
+func getDist(n1 *Node, n2 *Node) float64 {
+	xx := math.Pow(n1.x-n2.x, 2)
+	yy := math.Pow(n1.y-n2.y, 2)
+
+	return math.Sqrt(xx + yy)
+}
+
 type Graph struct {
-	nodes map[int]*Node
-	exits map[int]*Node
+	nodes map[uint]*Node
+	exits []uint
 }
 
 func createGraph(njson []interface{}) (*Graph, error) {
 	var g *Graph
 	g = new(Graph)
-	g.nodes = make(map[int]*Node)
-	g.exits = make(map[int]*Node)
+	g.nodes = make(map[uint]*Node)
+	g.exits = make([]uint, 0)
 
 	for _, e := range njson {
 		n := createNode(e.(map[string]interface{}))
 
 		g.nodes[n.index] = n
 		if n.ntype == "exit" {
-			g.exits[n.index] = n
+			g.exits = append(g.exits, n.index)
 		}
 	}
 
@@ -111,6 +120,85 @@ func getPath(c echo.Context) error {
 	}
 
 	//add pathfinding here
+	result, err := AStar(graph, minNode, graph.nodes[graph.exits[0]])
 
-	return c.JSON(http.StatusOK, minNode.index)
+	if err != nil {
+		panic(err)
+	}
+
+	json, _ := json.Marshal(result)
+	fmt.Println(json)
+	return c.JSON(http.StatusOK, string(json))
+}
+
+type Path struct {
+	cost   float64
+	parent *Path
+	node   *Node
+}
+
+type Vec2 struct {
+	X float64
+	Y float64
+}
+
+func AStar(graph *Graph, start *Node, target *Node) ([]Vec2, error) {
+	parentPath := new(Path)
+	parentPath.node = start
+
+	paths := make(map[*Path]bool)
+	visted := make(map[uint]bool)
+	//f(n) = g(n) + h(n)
+	getCost := func(n *Node) float64 {
+		h := getDist(n, target)
+		g := getDist(n, parentPath.node)
+
+		return g + h
+	}
+
+	for parentPath.node != target {
+		pnode := parentPath.node
+		var minPath *Path
+		minCost := math.MaxFloat64
+		for _, e := range pnode.cNodes {
+			if _, ok := visted[e]; ok {
+				continue
+			}
+			visted[e] = true
+
+			path := new(Path)
+			path.parent = parentPath
+			path.node = graph.nodes[e]
+			path.cost = getCost(path.node)
+			paths[path] = true
+		}
+
+		if len(paths) == 0 {
+			return nil, errors.New("failed to find a path to exit")
+		}
+
+		for p := range paths {
+			if p.cost < minCost {
+				minPath = p
+				minCost = p.cost
+			}
+		}
+
+		delete(paths, minPath)
+		parentPath = minPath
+	}
+
+	pathsindices := make([]Vec2, 0)
+	for {
+		n := parentPath.node
+		pathsindices = append(pathsindices, Vec2{X: n.x, Y: n.y})
+
+		if parentPath.parent == nil {
+			break
+		}
+
+		parentPath = parentPath.parent
+	}
+
+	return pathsindices, nil
 }
