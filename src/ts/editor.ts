@@ -1,7 +1,22 @@
+import 'construct-ui/lib/index.css'
 import Konva from 'konva';
 import $ from 'jquery';
-import { Button, Icons } from 'construct-ui';
 import m from 'mithril';
+import {
+    Button,
+    Icons,
+    CustomSelect,
+    ButtonGroup,
+    Drawer,
+    Dialog,
+    SelectList,
+    ListItem,
+    FocusManager,
+    Card,
+    Icon,
+    Grid,
+    Col
+  } from "construct-ui";
 
 class Vec2 {
     constructor(public x: number, public y: number) {}
@@ -200,6 +215,7 @@ class ShovGraph {
 
         window.setNodeType = (s:any) => {this.setNodeType(s)};
         let sinput = <HTMLInputElement>document.getElementById("nodeType");
+        if(sinput)
         this.nodeType = sinput.value;
     }
 
@@ -425,14 +441,13 @@ class Floor {
 
 class Editor {
     stage: any;
-    topbarElem: any;
     
     floor : Floor;
-    constructor(public container: any, public topbarelem: any) {
+    constructor(public container: any) {
         this.stage = new Konva.Stage({
             container: container, // id of container <div>
-            width: container.offsetWidth,
-            height: window.innerHeight - $('#topbar').height(),
+            width: screen.availWidth,
+            height: screen.availHeight,
             draggable: true,
             color: "white"
         });
@@ -463,23 +478,51 @@ class Editor {
     }
 }
 
-$(document).ready(() => {
-    let container = document.getElementById('container');
-    let topbar = document.getElementById('topbar');
-    $("#topbar").ready(() => {
-        let e = new Editor(container, topbar);
-    })
-})
+class MEditor {
+    editor : Editor;
 
-const page = {
-    view() {
-      return m(Button, {
-        iconLeft: Icons.FILTER,
-        intent: 'primary',
-        label: 'Button',
-        size: 'sm'
-      });
+    oncreate(vnode : any) {
+        console.log(vnode.dom)
+        this.editor = new Editor(vnode.dom)
     }
+
+    view() {
+        return m('div')
+    }
+}
+
+
+FocusManager.showFocusOnlyOnTab();
+
+let isDialogOpen = false;
+let isDrawerOpen = false;
+let selectedColor : any;
+
+
+const Buttons = {
+    view: () => {
+      return m("[style=padding:5px;position:fixed;z-index:99]", [
+          m(Button, {
+            iconLeft: Icons.SETTINGS,
+            label: "",
+            fluid: true,
+            size: 'xl',
+            onclick: () => (isDrawerOpen = true)
+          })
+      ]);
+    }
+  };
+
+const App = {
+  view: () => {
+      const editor =  m(MEditor);
+
+
+    return m('span', [
+        m(Buttons),
+        editor
+    ])
   }
-  
-  m.mount(document.getElementById("m"), page)
+};
+
+m.mount(document.body, App);

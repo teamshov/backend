@@ -1,4 +1,4 @@
 main.exe
+backend.exe
 node_modules/**
 .cache/**
-dist/**
