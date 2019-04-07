@@ -181,7 +181,7 @@ func dbDelete(c echo.Context) error {
 }
 
 func dbAll(c echo.Context) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@localhost:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
