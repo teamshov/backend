@@ -31,6 +31,8 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
+github.com/teamshov/backend/build v0.0.0-20190414123643-9ac1e98e4497 h1:uywWJjFMA7i0c7+A6cwO341y/iCT6TCHUcvbjWHHObc=
+github.com/teamshov/backend/build v0.0.0-20190414123643-9ac1e98e4497/go.mod h1:HfoAqCF7PXPPVMcKFxZfJ36Yhr9v8fr4icJGGlMvuzo=
 github.com/teamshov/backend/deploy v0.0.0-20190414120950-258508d4d406 h1:5Txdn76E3n8c4qbTya8gqTybB7hqF4mXn9gNZZpZFY0=
 github.com/teamshov/backend/deploy v0.0.0-20190414120950-258508d4d406/go.mod h1:GIhYrp9lj4rWlbX3c5R33pprNaq+mrx5o1nFAF0EZdA=
 github.com/teamshov/backend/server v0.0.0-20190414122341-f19d23914474 h1:PrxBq3NX/guH2JyylSsbrnGbaTiWNz8MouzixB75rWs=
