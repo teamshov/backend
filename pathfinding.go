@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -92,7 +91,7 @@ func GraphRoutine() {
 
 func InitPathfindingService(e *echo.Echo) {
 	GraphRoutine()
-	e.GET("/getpath", getPath)
+	e.PUT("/getpath", getPath)
 }
 
 func getPath(c echo.Context) error {
@@ -120,19 +119,28 @@ func getPath(c echo.Context) error {
 	}
 
 	//add pathfinding here
-	result, err := AStar(graph, minNode, graph.nodes[graph.exits[0]])
+	minCost := math.MaxFloat64
+	var minResult []float64
 
-	if err != nil {
-		panic(err)
+	for _, eindex := range graph.exits {
+		result, cost, err := AStar(graph, minNode, graph.nodes[eindex])
+		if cost < minCost {
+			minCost = cost
+			minResult = result
+		}
+
+		if err != nil {
+			panic(err)
+		}
 	}
 
-	json, _ := json.Marshal(result)
-	fmt.Println(json)
+	json, _ := json.Marshal(minResult)
 	return c.JSON(http.StatusOK, string(json))
 }
 
 type Path struct {
 	cost   float64
+	acculCost float64
 	parent *Path
 	node   *Node
 }
@@ -142,18 +150,18 @@ type Vec2 struct {
 	Y float64
 }
 
-func AStar(graph *Graph, start *Node, target *Node) ([]Vec2, error) {
+func AStar(graph *Graph, start *Node, target *Node) ([]float64, float64, error) {
 	parentPath := new(Path)
 	parentPath.node = start
 
 	paths := make(map[*Path]bool)
 	visted := make(map[uint]bool)
 	//f(n) = g(n) + h(n)
-	getCost := func(n *Node) float64 {
+	getCost := func(n *Node) (float64, float64) {
 		h := getDist(n, target)
 		g := getDist(n, parentPath.node)
 
-		return g + h
+		return g + h, g
 	}
 
 	for parentPath.node != target {
@@ -161,6 +169,7 @@ func AStar(graph *Graph, start *Node, target *Node) ([]Vec2, error) {
 		var minPath *Path
 		minCost := math.MaxFloat64
 		for _, e := range pnode.cNodes {
+			var g float64
 			if _, ok := visted[e]; ok {
 				continue
 			}
@@ -169,12 +178,13 @@ func AStar(graph *Graph, start *Node, target *Node) ([]Vec2, error) {
 			path := new(Path)
 			path.parent = parentPath
 			path.node = graph.nodes[e]
-			path.cost = getCost(path.node)
+			path.cost, g = getCost(path.node)
+			path.acculCost = parentPath.acculCost + g
 			paths[path] = true
 		}
 
 		if len(paths) == 0 {
-			return nil, errors.New("failed to find a path to exit")
+			return nil, 0, errors.New("failed to find a path to exit")
 		}
 
 		for p := range paths {
@@ -187,11 +197,12 @@ func AStar(graph *Graph, start *Node, target *Node) ([]Vec2, error) {
 		delete(paths, minPath)
 		parentPath = minPath
 	}
-
-	pathsindices := make([]Vec2, 0)
+	cost := parentPath.acculCost
+	pathsindices := make([]float64, 0)
 	for {
 		n := parentPath.node
-		pathsindices = append(pathsindices, Vec2{X: n.x, Y: n.y})
+		pathsindices = append(pathsindices, n.x)
+		pathsindices = append(pathsindices, n.y)
 
 		if parentPath.parent == nil {
 			break
@@ -200,5 +211,5 @@ func AStar(graph *Graph, start *Node, target *Node) ([]Vec2, error) {
 		parentPath = parentPath.parent
 	}
 
-	return pathsindices, nil
+	return pathsindices, cost, nil
 }

@@ -34963,7 +34963,7 @@ var isDrawerOpen = false;
 var selectedColor;
 var Buttons = {
   view: function view() {
-    return (0, _mithril.default)("[style=padding:5px;position:fixed;z-index:99]", [(0, _mithril.default)(_constructUi.Button, {
+    return (0, _mithril.default)("[style=padding:5px;position:fixed;z-index:99]", [(0, _mithril.default)(_constructUi.ButtonGroup, [(0, _mithril.default)(_constructUi.Button, {
       iconLeft: _constructUi.Icons.SETTINGS,
       label: "",
       fluid: true,
@@ -34971,7 +34971,15 @@ var Buttons = {
       onclick: function onclick() {
         return isDrawerOpen = true;
       }
-    })]);
+    }), (0, _mithril.default)(_constructUi.Button, {
+      iconLeft: _constructUi.Icons.SAVE,
+      label: "Save",
+      fluid: true,
+      size: 'xl',
+      onclick: function onclick() {
+        window.save();
+      }
+    })])]);
   }
 };
 var App = {
@@ -35010,7 +35018,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "64967" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50905" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

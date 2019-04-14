@@ -478,7 +478,7 @@ class Editor {
     }
 }
 
-class MEditor {
+class MFEditor {
     editor : Editor;
 
     oncreate(vnode : any) {
@@ -502,20 +502,29 @@ let selectedColor : any;
 const Buttons = {
     view: () => {
       return m("[style=padding:5px;position:fixed;z-index:99]", [
+          m(ButtonGroup, [
           m(Button, {
             iconLeft: Icons.SETTINGS,
             label: "",
             fluid: true,
             size: 'xl',
             onclick: () => (isDrawerOpen = true)
+          }),
+          m(Button, {
+            iconLeft: Icons.SAVE,
+            label: "Save",
+            fluid: true,
+            size: 'xl',
+            onclick: ()=> {window.save()}
           })
+        ])
       ]);
     }
   };
 
-const App = {
-  view: () => {
-      const editor =  m(MEditor);
+class MEditor {
+  view(vnode : any) {
+      const editor =  m(MFEditor);
 
 
     return m('span', [
