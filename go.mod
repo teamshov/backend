@@ -11,6 +11,7 @@ require (
 	github.com/labstack/echo/v4 v4.0.0
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/teamshov/backend/deploy v0.0.0-20190414120950-258508d4d406 // indirect
+	github.com/teamshov/backend/server v0.0.0-20190414122341-f19d23914474 // indirect
 	golang.org/x/net v0.0.0-20190125091013-d26f9f9a57f3 // indirect
 	gopkg.in/resty.v1 v1.12.0
 )
