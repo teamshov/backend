@@ -1,24 +1,51 @@
 package main
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"os"
+	"os/exec"
+	"syscall"
 )
 
+func restartService(name string) {
+	binary, lookErr := exec.LookPath("sc")
+	if lookErr != nil {
+		panic(lookErr)
+	}
+
+	stop := []string{"sc", "stop", name}
+	start := []string{"sc", "start", name}
+
+	env := os.Environ()
+
+	err := syscall.Exec(binary, stop, env)
+	if err != nil {
+		panic(err)
+	}
+
+	err = syscall.Exec(binary, start, env)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func buildServer() {
+	binary, lookErr := exec.LookPath("go")
+	if lookErr != nil {
+		panic(lookErr)
+	}
+
+	stop := []string{"sc", "build", "./server"}
+
+	env := os.Environ()
+
+	err := syscall.Exec(binary, stop, env)
+	if err != nil {
+		panic(err)
+	}
+
+}
+
 func main() {
-	e := echo.New()
-
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	e.Use(middleware.CORS())
-
-	e.Static("/", "dist")
-	e.File("/", "dist/index.html")
-
-	InitDBService(e)
-	InitRedisService(e)
-	InitPathfindingService(e)
-
-	e.Logger.Fatal(e.Start(":62027"))
+	buildServer()
+	restartService("TeamShovBackend")
 }
