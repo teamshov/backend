@@ -1,5 +1,10 @@
 module github.com/teamshov/backend
 
+replace (
+	github.com/teamshov/backend/build => ./build
+	github.com/teamshov/backend/server => ./server
+)
+
 require (
 	github.com/flimzy/diff v0.1.5 // indirect
 	github.com/flimzy/kivik v1.8.1
