@@ -14,14 +14,14 @@ import ( //"fmt"
 )
 
 func InitDBService(e *echo.Echo) {
-	e.GET("/db/:db/:id", dbGet)
-	e.GET("/db/:db/:id/:attch", dbGetAttch)
-	e.PUT("/db/:db/:id", dbPut)
-	e.DELETE("/db/:db/:id", dbDelete)
-	e.GET("/db/all/:db", dbAll)
+	e.GET("/db/:db/:id", apidbGet)
+	e.GET("/db/:db/:id/:attch", apidbGetAttch)
+	e.PUT("/db/:db/:id", apidbPut)
+	e.DELETE("/db/:db/:id", apidbDelete)
+	e.GET("/db/all/:db", apidbAll)
 }
 
-func DBGet(dbname string, id string) map[string]interface{} {
+func DBGet(dbname string, id string) (map[string]interface{}, error) {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		panic(err)
@@ -29,20 +29,20 @@ func DBGet(dbname string, id string) map[string]interface{} {
 
 	db, err := client.DB(context.TODO(), dbname)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	row, _ := db.Get(context.TODO(), id)
 
 	var doc map[string]interface{}
 	if err = row.ScanDoc(&doc); err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return doc
+	return doc, nil
 }
 
-func dbGet(c echo.Context) error {
+func apidbGet(c echo.Context) error {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
@@ -67,7 +67,7 @@ func dbGet(c echo.Context) error {
 	return c.JSON(http.StatusOK, doc)
 }
 
-func dbGetAttch(c echo.Context) error {
+func apidbGetAttch(c echo.Context) error {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
@@ -103,7 +103,7 @@ func dbGetAttch(c echo.Context) error {
 	return c.Blob(http.StatusOK, a.ContentType, data)
 }
 
-func dbPut(c echo.Context) error {
+func apidbPut(c echo.Context) error {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
@@ -150,7 +150,7 @@ func dbPut(c echo.Context) error {
 	return c.JSON(http.StatusOK, doc)
 }
 
-func dbDelete(c echo.Context) error {
+func apidbDelete(c echo.Context) error {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
@@ -180,7 +180,35 @@ func dbDelete(c echo.Context) error {
 	return c.String(http.StatusOK, "Deleted, rev: "+deletedrev)
 }
 
-func dbAll(c echo.Context) error {
+func DBAll(dbparam string) ([]string, error) {
+	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := client.DB(context.TODO(), dbparam)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := db.AllDocs(context.TODO())
+	if err != nil {
+		return nil, err
+	}
+
+	var ilist []string
+	for rows.Next() {
+		ilist = append(ilist, rows.ID())
+	}
+
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return ilist, nil
+}
+
+func apidbAll(c echo.Context) error {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())

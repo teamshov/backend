@@ -17,7 +17,8 @@ func main() {
 	e.File("/", "dist/index.html")
 
 	InitDBService(e)
-	InitRedisService(e)
+	InitSensorService(e)
+	defer DisconnectSensorService()
 	InitPathfindingService(e)
 
 	e.Logger.Fatal(e.Start(":62027"))
