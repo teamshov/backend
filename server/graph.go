@@ -1,13 +1,24 @@
 package main
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
+type IOTDevice struct {
+	deviceType  string
+	deviceID    string
+	node        *Node
+	dangerLevel float64
+	x           float64
+	y           float64
+}
 type Node struct {
 	cNodes []uint
 	index  uint
 	x      float64
 	y      float64
-	ntype  string
+	isExit bool
 }
 
 func createNode(e map[string]interface{}) *Node {
@@ -25,7 +36,11 @@ func createNode(e map[string]interface{}) *Node {
 	pos := e["pos"].(map[string]interface{})
 	n.x = pos["x"].(float64)
 	n.y = pos["y"].(float64)
-	n.ntype = e["type"].(string)
+
+	ntype := e["type"].(string)
+	if ntype == "exit" {
+		n.isExit = true
+	}
 
 	return n
 }
@@ -62,9 +77,13 @@ func getNearestNode(x float64, y float64) *Node {
 }
 
 type Graph struct {
-	nodes   map[uint]*Node
-	exits   []uint
-	devices map[string]map[string]*Node
+	nodes        map[uint]*Node
+	exits        []uint
+	devices      []*IOTDevice
+	coloredNodes map[string]*ColorPath
+
+	buildingID string
+	floorID    string
 }
 
 func createGraph(njson []interface{}) (*Graph, error) {
@@ -72,13 +91,15 @@ func createGraph(njson []interface{}) (*Graph, error) {
 	g = new(Graph)
 	g.nodes = make(map[uint]*Node)
 	g.exits = make([]uint, 0)
-	g.devices = make(map[string]map[string]*Node)
+	g.devices = make([]*IOTDevice, 0)
+	g.buildingID = "eb2"
+	g.floorID = "1"
 
 	for _, e := range njson {
 		n := createNode(e.(map[string]interface{}))
 
 		g.nodes[n.index] = n
-		if n.ntype == "exit" {
+		if n.isExit {
 			g.exits = append(g.exits, n.index)
 		}
 	}
@@ -101,23 +122,21 @@ func InitGraph() {
 	graph.loadDevicesFromDB("esp32")
 }
 
-func GraphRoutine() {
-
-}
-
 func (g *Graph) loadDevicesFromDB(db string) {
 	dlist, err := DBAll(db)
 	if err != nil {
 		panic(err)
 	}
 
-	g.devices[db] = make(map[string]*Node)
-
 	for _, v := range dlist {
-		piedoc, _ := DBGet("pies", v)
+		doc, err := DBGet(db, v)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 
-		x, xok := piedoc["xpos"].(float64)
-		y, yok := piedoc["ypos"].(float64)
+		x, xok := doc["xpos"].(float64)
+		y, yok := doc["ypos"].(float64)
 
 		if !xok || !yok {
 			continue
@@ -125,6 +144,102 @@ func (g *Graph) loadDevicesFromDB(db string) {
 
 		n := getNearestNode(x, y)
 
-		g.devices[db][v] = n
+		g.devices = append(g.devices, &IOTDevice{deviceType: db, deviceID: v, node: n, x: x, y: y})
+
+		_, cok := doc["iscolor"].(bool)
+		if cok {
+			g.coloredNodes[v] = createColorPath(n, db, v)
+		}
 	}
+}
+
+type ColorPath struct {
+	origin     *Node
+	deviceType string
+	deviceID   string
+	path       []*Node
+}
+
+func createColorPath(node *Node, deviceType string, deviceID string) *ColorPath {
+	//add pathfinding here
+	minCost := math.MaxFloat64
+	var minResult []*Node
+
+	for _, eindex := range graph.exits {
+		result, cost, err := AStarNodes(graph, node, graph.nodes[eindex])
+		if cost < minCost {
+			minCost = cost
+			minResult = result
+		}
+
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	colorpath := &ColorPath{
+		origin:     node,
+		deviceType: deviceType,
+		deviceID:   deviceID,
+		path:       minResult,
+	}
+
+	return colorpath
+}
+
+func GraphRoutine() {
+	for {
+		for _, v := range graph.devices {
+			v.updateDangerLevel()
+		}
+
+		for _, v := range graph.coloredNodes {
+			color := getColorOfPath(v)
+			PublishColor(v.deviceType, v.deviceID, color)
+		}
+	}
+}
+
+func getColorOfPath(colorpath *ColorPath) string {
+	var isCongested bool
+	var isDangerous bool
+
+	for _, e := range colorpath.path {
+		if e.isExit {
+			congestion, _ := RedisGetInt(fmt.Sprintf("%s:%s:exit:%i", graph.buildingID, graph.floorID, e.index))
+
+			if congestion > getMaxExitOccupation() {
+				isCongested = true
+			}
+		}
+
+		if graph.sampleDangerLeveL(e.x, e.y) > getMaxDangerLevek() {
+			isDangerous = true
+		}
+	}
+
+	if isDangerous {
+		return "red"
+	} else if isCongested {
+		return "yellow"
+	} else {
+		return "green"
+	}
+}
+
+func (d *IOTDevice) updateDangerLevel() {
+	dl, err := RedisGetFloat64(fmt.Sprintf("%s:%s:dangerlevel", d.deviceType, d.deviceID))
+	if err != nil {
+		fmt.Println(err)
+	}
+	d.dangerLevel = dl
+}
+
+func (g *Graph) sampleDangerLeveL(x float64, y float64) float64 {
+	var sum float64
+	for _, e := range g.devices {
+		dist := math.Sqrt(math.Pow((x-e.x), 2) + math.Pow((y-e.y), 2))
+		sum += e.dangerLevel / dist
+	}
+	return sum
 }

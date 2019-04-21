@@ -10,6 +10,7 @@ import ( //"fmt"
 
 	"github.com/flimzy/kivik"
 	_ "github.com/go-kivik/couchdb" // The CouchDB driver
+	"github.com/gomodule/redigo/redis"
 	"github.com/labstack/echo/v4"
 )
 
@@ -32,10 +33,13 @@ func DBGet(dbname string, id string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	row, _ := db.Get(context.TODO(), id)
+	row, err := db.Get(context.TODO(), id)
+	if err != nil {
+		return nil, err
+	}
 
 	var doc map[string]interface{}
-	if err = row.ScanDoc(&doc); err != nil {
+	if err := row.ScanDoc(&doc); err != nil {
 		return nil, err
 	}
 
@@ -103,6 +107,50 @@ func apidbGetAttch(c echo.Context) error {
 	return c.Blob(http.StatusOK, a.ContentType, data)
 }
 
+func DBPut(dbparam string, idparam string, data map[string]interface{}) error {
+	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	if err != nil {
+		return err
+	}
+
+	db, err := client.DB(context.TODO(), dbparam)
+	if err != nil {
+		return err
+	}
+
+	row, err := db.Get(context.TODO(), idparam)
+
+	var doc map[string]interface{}
+	if err != nil {
+		if kivik.StatusCode(err) == kivik.StatusNotFound {
+			doc2 := map[string]interface{}{
+				"_id": idparam,
+			}
+			rev, err2 := db.Put(context.TODO(), idparam, doc2)
+			if err2 != nil {
+				return err2
+			}
+			doc2["_rev"] = rev
+			doc = doc2
+		} else {
+			return err
+		}
+	} else {
+		if err := row.ScanDoc(&doc); err != nil {
+			return err
+		}
+	}
+
+	for k, v := range data {
+		doc[k] = v
+	}
+
+	rev, _ := db.Put(context.TODO(), idparam, doc)
+	doc["_rev"] = rev
+
+	return nil
+}
+
 func apidbPut(c echo.Context) error {
 	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
 	if err != nil {
@@ -117,10 +165,10 @@ func apidbPut(c echo.Context) error {
 	}
 
 	idparam := c.Param("id")
-	row, _ := db.Get(context.TODO(), idparam)
+	row, err := db.Get(context.TODO(), idparam)
 
 	var doc map[string]interface{}
-	if err = row.ScanDoc(&doc); err != nil {
+	if err != nil {
 		if kivik.StatusCode(err) == kivik.StatusNotFound {
 			doc2 := map[string]interface{}{
 				"_id": idparam,
@@ -129,9 +177,13 @@ func apidbPut(c echo.Context) error {
 			if err2 != nil {
 				return c.String(http.StatusInternalServerError, err2.Error())
 			}
-			doc["_rev"] = rev
-
+			doc2["_rev"] = rev
+			doc = doc2
 		} else {
+			return c.String(http.StatusInternalServerError, err.Error())
+		}
+	} else {
+		if err := row.ScanDoc(&doc); err != nil {
 			return c.String(http.StatusInternalServerError, err.Error())
 		}
 	}
@@ -236,4 +288,34 @@ func apidbAll(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, ilist)
+}
+
+func RedisGetInt(key string) (int, error) {
+	r, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		return 0, err
+	}
+	defer r.Close()
+
+	i, err := redis.Int(r.Do("GET", key))
+	if err != nil {
+		return 0, err
+	}
+
+	return i, nil
+}
+
+func RedisGetFloat64(key string) (float64, error) {
+	r, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		return 0, err
+	}
+	defer r.Close()
+
+	f, err := redis.Float64(r.Do("GET", key))
+	if err != nil {
+		return 0, err
+	}
+
+	return f, nil
 }

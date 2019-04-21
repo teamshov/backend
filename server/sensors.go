@@ -25,8 +25,12 @@ var sensorHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Messag
 
 	_, err := DBGet(deviceType, deviceID)
 	if err != nil {
-		fmt.Printf("Device %s with ID %s not found", deviceType, deviceID)
-		return
+		doc := make(map[string]interface{})
+		doc[sensorType] = true
+		err := DBPut(deviceType, deviceID, doc)
+		if err != nil {
+			fmt.Println("Failed to put device")
+		}
 	}
 
 	r, err := redis.Dial("tcp", ":6379")
@@ -35,12 +39,13 @@ var sensorHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Messag
 	}
 	defer r.Close()
 
-	n, _ := r.Do("SET " + fmt.Sprintf("%s:%s:%s", deviceType, deviceID, sensorType) + string(msg.Payload()))
-
-	fmt.Printf("Redis: %s\n", n.(string))
+	n, err := r.Do("SET", fmt.Sprintf("%s:%s:%s ", deviceType, deviceID, sensorType), msg.Payload())
+	if err != nil {
+		fmt.Printf("Redis: %v\n", n)
+	}
 }
 
-var opts MQTT.ClientOptions
+var opts *MQTT.ClientOptions
 var c MQTT.Client
 
 var sensorTopic string = "device/+/+/+"
@@ -48,12 +53,13 @@ var sensorTopic string = "device/+/+/+"
 //InitSensorService call in main
 func InitSensorService(e *echo.Echo) {
 
-	opts := MQTT.NewClientOptions().AddBroker("tcp://omaraa.ddns.net:1883")
+	opts = MQTT.NewClientOptions().AddBroker("tcp://omaraa.ddns.net:1883")
 	opts.SetClientID("backend")
 	opts.SetDefaultPublishHandler(f)
+	opts.SetConnectionLostHandler(connectionLostHandler)
 
 	//create and start a client using the above ClientOptions
-	c := MQTT.NewClient(opts)
+	c = MQTT.NewClient(opts)
 	if token := c.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
@@ -91,4 +97,8 @@ func redisTest(c echo.Context) error {
 	n, _ := r.Do("PING")
 
 	return c.String(http.StatusOK, n.(string))
+}
+
+func PublishColor(deviceType string, deviceID string, color string) {
+	c.Publish(fmt.Sprintf("device/%s/%s/color", deviceType, deviceID), 0, false, color)
 }
