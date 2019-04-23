@@ -39,7 +39,7 @@ var sensorHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Messag
 	}
 	defer r.Close()
 
-	n, err := r.Do("SET", fmt.Sprintf("%s:%s:%s ", deviceType, deviceID, sensorType), msg.Payload())
+	n, err := r.Do("SET", fmt.Sprintf("%s:%s:%s", deviceType, deviceID, sensorType), msg.Payload())
 	if err != nil {
 		fmt.Printf("Redis: %v\n", n)
 	}
