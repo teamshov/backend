@@ -139,7 +139,7 @@ class Node {
         this.konvaObj = new Konva.Circle({
             x: kpos.x,
             y: kpos.y,
-            radius: 12,
+            radius: 8,
             fill: this.fill,
             stroke: 'black',
             strokeWidth: 2,
@@ -361,7 +361,7 @@ class ShovItem {
         $.ajax({
             url: url, 
             type: 'PUT',
-            data: JSON.stringify({"xpos": pos.x, "ypos": pos.y}),
+            data: JSON.stringify({"xpos": pos.x, "ypos": pos.y, "building": "eb2", "floor": "L1"}),
             success: () => {console.log("save successful")},
             error: () => {console.error("save failed")}
           });
@@ -405,6 +405,7 @@ class Floor {
     floorplan: any;
     beacons: ShovItemManager;
     pies: ShovItemManager;
+    esp32 : ShovItemManager;
     graph : ShovGraph;
     constructor(public editor: Editor, public src: string) {
         this.layer = new Konva.Layer({});
@@ -425,8 +426,9 @@ class Floor {
         };
         this.imageObj.src = src
 
-        this.beacons = new ShovItemManager(this, "beacons", "black");
-        this.pies = new ShovItemManager(this, "pies", "red");
+        this.beacons = new ShovItemManager(this, "beacons", "blue");
+        this.pies = new ShovItemManager(this, "pies", "#b3446c");
+        this.esp32 = new ShovItemManager(this, "esp32", "red");
         this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
     }
 
@@ -434,6 +436,16 @@ class Floor {
         this.beacons.save();
         this.pies.save();
         this.graph.save("http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+        $.ajax({
+            url: "http://omaraa.ddns.net:62027/db/buildings/eb2", 
+            type: 'PUT',
+            data: JSON.stringify({ "floors": {
+                "L1": {"image": "L1_Black.png"}
+            }
+            }),
+            success: () => {console.log("save successful")},
+            error: () => {console.error("save failed")}
+          });
     }
 
 
@@ -458,14 +470,14 @@ class Editor {
         layer.add(new Konva.Circle({
             x: 0,
             y: 0,
-            radius: 8,
-            fill: 'yellow',
+            radius: 5,
+            fill: 'black',
             stroke: 'black',
-            strokeWidth: 2
+            strokeWidth: 1
         }));
 
         this.stage.add(layer);
-        this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1.png");
+        this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1_Black.png");
         
 
         this.stage.draw();
@@ -534,4 +546,4 @@ class MEditor {
   }
 };
 
-m.mount(document.body, App);
+m.mount(document.body, MEditor);

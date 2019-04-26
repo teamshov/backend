@@ -314,8 +314,38 @@ func RedisGetFloat64(key string) (float64, error) {
 
 	f, err := redis.Float64(r.Do("GET", key))
 	if err != nil {
-		return 0, err
+		return f, err
 	}
 
 	return f, nil
+}
+
+func RedisGetString(key string) (string, error) {
+	r, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	f, err := redis.String(r.Do("GET", key))
+	if err != nil {
+		return f, err
+	}
+
+	return f, nil
+}
+
+func RedisSetInterface(key string, f map[string]interface{}) error {
+	r, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+
+	_, err = r.Do("SET", key, f)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

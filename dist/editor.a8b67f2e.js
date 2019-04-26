@@ -34356,7 +34356,7 @@ function () {
     this.konvaObj = new _konva.default.Circle({
       x: kpos.x,
       y: kpos.y,
-      radius: 12,
+      radius: 8,
       fill: this.fill,
       stroke: 'black',
       strokeWidth: 2,
@@ -34734,7 +34734,9 @@ function () {
         type: 'PUT',
         data: JSON.stringify({
           "xpos": pos.x,
-          "ypos": pos.y
+          "ypos": pos.y,
+          "building": "eb2",
+          "floor": "L1"
         }),
         success: function success() {
           console.log("save successful");
@@ -34871,8 +34873,9 @@ function () {
     };
 
     this.imageObj.src = src;
-    this.beacons = new ShovItemManager(this, "beacons", "black");
-    this.pies = new ShovItemManager(this, "pies", "red");
+    this.beacons = new ShovItemManager(this, "beacons", "blue");
+    this.pies = new ShovItemManager(this, "pies", "#b3446c");
+    this.esp32 = new ShovItemManager(this, "esp32", "red");
     this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
   }
 
@@ -34882,6 +34885,24 @@ function () {
       this.beacons.save();
       this.pies.save();
       this.graph.save("http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+
+      _jquery.default.ajax({
+        url: "http://omaraa.ddns.net:62027/db/buildings/eb2",
+        type: 'PUT',
+        data: JSON.stringify({
+          "floors": {
+            "L1": {
+              "image": "L1_Black.png"
+            }
+          }
+        }),
+        success: function success() {
+          console.log("save successful");
+        },
+        error: function error() {
+          console.error("save failed");
+        }
+      });
     }
   }]);
 
@@ -34909,13 +34930,13 @@ function () {
     layer.add(new _konva.default.Circle({
       x: 0,
       y: 0,
-      radius: 8,
-      fill: 'yellow',
+      radius: 5,
+      fill: 'black',
       stroke: 'black',
-      strokeWidth: 2
+      strokeWidth: 1
     }));
     this.stage.add(layer);
-    this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1.png");
+    this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1_Black.png");
     this.stage.draw();
 
     window.save = function () {
@@ -34933,14 +34954,14 @@ function () {
   return Editor;
 }();
 
-var MEditor =
+var MFEditor =
 /*#__PURE__*/
 function () {
-  function MEditor() {
-    _classCallCheck(this, MEditor);
+  function MFEditor() {
+    _classCallCheck(this, MFEditor);
   }
 
-  _createClass(MEditor, [{
+  _createClass(MFEditor, [{
     key: "oncreate",
     value: function oncreate(vnode) {
       console.log(vnode.dom);
@@ -34953,7 +34974,7 @@ function () {
     }
   }]);
 
-  return MEditor;
+  return MFEditor;
 }();
 
 _constructUi.FocusManager.showFocusOnlyOnTab();
@@ -34982,14 +35003,28 @@ var Buttons = {
     })])]);
   }
 };
-var App = {
-  view: function view() {
-    var editor = (0, _mithril.default)(MEditor);
-    return (0, _mithril.default)('span', [(0, _mithril.default)(Buttons), editor]);
-  }
-};
 
-_mithril.default.mount(document.body, App);
+var MEditor =
+/*#__PURE__*/
+function () {
+  function MEditor() {
+    _classCallCheck(this, MEditor);
+  }
+
+  _createClass(MEditor, [{
+    key: "view",
+    value: function view(vnode) {
+      var editor = (0, _mithril.default)(MFEditor);
+      return (0, _mithril.default)('span', [(0, _mithril.default)(Buttons), editor]);
+    }
+  }]);
+
+  return MEditor;
+}();
+
+;
+
+_mithril.default.mount(document.body, MEditor);
 },{"construct-ui/lib/index.css":"../node_modules/construct-ui/lib/index.css","konva":"../node_modules/konva/lib/index.js","jquery":"../node_modules/jquery/dist/jquery.js","mithril":"../node_modules/mithril/mithril.js","construct-ui":"../node_modules/construct-ui/lib/esm/index.js"}],"C:/Users/Omar/AppData/Roaming/npm/node_modules/parcel/src/builtins/hmr-runtime.js":[function(require,module,exports) {
 var global = arguments[3];
 var OVERLAY_ID = '__parcel__error__overlay__';
@@ -35018,7 +35053,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "50905" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59652" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

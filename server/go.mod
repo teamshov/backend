@@ -8,5 +8,6 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/labstack/echo/v4 v4.0.0
 	github.com/pkg/errors v0.8.1 // indirect
+	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
 	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3 // indirect
 )

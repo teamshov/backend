@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	_ "github.com/go-kivik/couchdb" // The CouchDB driver
 	"github.com/gomodule/redigo/redis"
-	"github.com/labstack/echo/v4"
+	"github.com/tarm/serial"
 )
 
 //define a function for the default message handler
@@ -17,16 +16,29 @@ var f MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	fmt.Printf("MSG: %s\n", msg.Payload())
 }
 
+var s *serial.Port
+
 var sensorHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	st := strings.Split(msg.Topic(), "/")
 	deviceType := st[1]
 	deviceID := st[2]
 	sensorType := st[3]
 
+	if sensorType == "color" {
+		return
+	}
+
 	_, err := DBGet(deviceType, deviceID)
 	if err != nil {
 		doc := make(map[string]interface{})
 		doc[sensorType] = true
+		doc["xpos"] = 0
+		doc["ypos"] = 0
+
+		if devicesSettings[deviceType].(map[string]interface{})["color"].(bool) {
+			doc["color"] = true
+		}
+
 		err := DBPut(deviceType, deviceID, doc)
 		if err != nil {
 			fmt.Println("Failed to put device")
@@ -39,19 +51,24 @@ var sensorHandler MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Messag
 	}
 	defer r.Close()
 
-	n, err := r.Do("SET", fmt.Sprintf("%s:%s:%s", deviceType, deviceID, sensorType), msg.Payload())
+	path := fmt.Sprintf("%s:%s:dangerlevel", deviceType, deviceID)
+	n, err := r.Do("SET", path, msg.Payload())
 	if err != nil {
-		fmt.Printf("Redis: %v\n", n)
+		fmt.Printf("Redis SET: %v\n", n)
 	}
+
 }
 
 var opts *MQTT.ClientOptions
 var c MQTT.Client
+var devicesSettings map[string]interface{}
 
 var sensorTopic string = "device/+/+/+"
 
 //InitSensorService call in main
-func InitSensorService(e *echo.Echo) {
+func InitSensorService() {
+
+	devicesSettings, _ = DBGet("system", "devices")
 
 	opts = MQTT.NewClientOptions().AddBroker("tcp://omaraa.ddns.net:1883")
 	opts.SetClientID("backend")
@@ -68,7 +85,6 @@ func InitSensorService(e *echo.Echo) {
 		panic(token.Error())
 	}
 
-	e.GET("/redis", redisTest)
 }
 
 var connectionLostHandler MQTT.ConnectionLostHandler = func(c MQTT.Client, err error) {
@@ -85,18 +101,6 @@ func DisconnectSensorService() {
 	}
 
 	c.Disconnect(250)
-}
-
-func redisTest(c echo.Context) error {
-	r, err := redis.Dial("tcp", ":6379")
-	if err != nil {
-		panic(err)
-	}
-	defer r.Close()
-
-	n, _ := r.Do("PING")
-
-	return c.String(http.StatusOK, n.(string))
 }
 
 func PublishColor(deviceType string, deviceID string, color string) {

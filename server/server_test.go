@@ -5,9 +5,6 @@ import (
 	"testing"
 )
 
-func TestDBGet(t *testing.T) {
-
-}
 func TestPathfinding(t *testing.T) {
 	//load the graph
 	doc := DBGet("graphs", "eb2_L1")

@@ -1,57 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"math"
-	"net/http"
-
-	"github.com/labstack/echo/v4"
 )
-
-func InitPathfindingService(e *echo.Echo) {
-	InitGraph()
-	e.PUT("/getpath", getPath)
-}
-
-func getPathXY(x float64, y float64) string {
-
-	node := getNearestNode(x, y)
-
-	//add pathfinding here
-	minCost := math.MaxFloat64
-	var minResult []float64
-
-	for _, eindex := range graph.exits {
-		result, cost, err := AStar(graph, node, graph.nodes[eindex])
-		if cost < minCost {
-			minCost = cost
-			minResult = result
-		}
-
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	json, _ := json.Marshal(minResult)
-	return string(json)
-}
-
-func getPath(c echo.Context) error {
-	var input map[string]interface{}
-	//var paths map[string]interface{}
-
-	body, _ := ioutil.ReadAll(c.Request().Body)
-	json.Unmarshal(body, &input)
-
-	x := input["x"].(float64)
-	y := input["y"].(float64)
-	//uid := input["uid"]
-
-	return c.JSON(http.StatusOK, getPathXY(x, y))
-}
 
 type Path struct {
 	cost      float64
@@ -65,7 +17,7 @@ type Vec2 struct {
 	Y float64
 }
 
-func AStar(graph *Graph, start *Node, target *Node) ([]float64, float64, error) {
+func (graph *Graph) AStar(start *Node, target *Node) ([]float64, float64, error) {
 	parentPath := new(Path)
 	parentPath.node = start
 
@@ -75,8 +27,10 @@ func AStar(graph *Graph, start *Node, target *Node) ([]float64, float64, error) 
 	getCost := func(n *Node) (float64, float64) {
 		h := getDist(n, target)
 		g := getDist(n, parentPath.node)
+		s := graph.sampleDangerLeveL(n.x, n.y)
+		d := g * (1/(1-math.Sqrt(s)) - 1)
 
-		return g + h, g
+		return g + d + h, g + d
 	}
 
 	for parentPath.node != target {
@@ -129,7 +83,7 @@ func AStar(graph *Graph, start *Node, target *Node) ([]float64, float64, error) 
 	return pathsindices, cost, nil
 }
 
-func AStarNodes(graph *Graph, start *Node, target *Node) ([]*Node, float64, error) {
+func (graph *Graph) AStarNodes(start *Node, target *Node) ([]*Node, float64, error) {
 	parentPath := new(Path)
 	parentPath.node = start
 
