@@ -124,9 +124,28 @@ class ShovItemManager {
 
 }
 
+class Cell {
+    konvaObj : any;
+    value : number;
+
+    constructor(layer : any, rpos: Vec2) {
+
+    }
+}
+
 class HeatMap {
 
+    updateInterval : any;
+    grid : Cell[][];
+
     constructor(public floor : Floor) {
+        this.grid = []
+        for(let i = 0; i < 40; i++) {
+            this.grid.push([])
+            for(let j = 0; j < 60; j++) {
+                this.grid[i].push(new Cell(floor.layer, new Vec2(i,j)))
+            }
+        }
 
     }
 }

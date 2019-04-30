@@ -20,12 +20,13 @@ func (b *Building) initFloor(floorID string, floordoc map[string]interface{}) *F
 	floor := &Floor{id: floorID, building: b}
 
 	graphID := floordoc["graph"].(string)
-	floor.InitGraph(graphID)
+	floor.graph = floor.InitGraph(graphID)
 
 	return floor
 }
 
-func (f *Floor) InitGraph(graphID string) {
+var g *Graph
+func (f *Floor) InitGraph(graphID string) (*Graph) {
 	//load the graph
 	doc, _ := DBGet("graphs", graphID)
 
@@ -38,6 +39,9 @@ func (f *Floor) InitGraph(graphID string) {
 	graph.floor = f
 	graph.building = f.building
 	go graph.GraphRoutine()
+	g = graph
+
+	return graph;
 }
 
 func (building *Building) SetEmergency(e bool) {

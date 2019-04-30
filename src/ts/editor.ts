@@ -435,6 +435,7 @@ class Floor {
     save() {
         this.beacons.save();
         this.pies.save();
+        this.esp32.save();
         this.graph.save("http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
         $.ajax({
             url: "http://omaraa.ddns.net:62027/db/buildings/eb2", 

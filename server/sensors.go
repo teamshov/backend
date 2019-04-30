@@ -95,7 +95,6 @@ var connectionLostHandler MQTT.ConnectionLostHandler = func(c MQTT.Client, err e
 
 //DisconnectSensorService defer in main
 func DisconnectSensorService() {
-	//unsubscribe from /go-mqtt/sample
 	if token := c.Unsubscribe(sensorTopic); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}

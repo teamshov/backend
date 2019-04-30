@@ -9,7 +9,6 @@ type Building struct {
 type Floor struct {
 	id       string
 	graph    *Graph
-	devices  *IOTDevice
 	building *Building
 }
 

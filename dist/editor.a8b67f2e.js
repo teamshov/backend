@@ -34884,6 +34884,7 @@ function () {
     value: function save() {
       this.beacons.save();
       this.pies.save();
+      this.esp32.save();
       this.graph.save("http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
 
       _jquery.default.ajax({
@@ -35053,7 +35054,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59652" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53577" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

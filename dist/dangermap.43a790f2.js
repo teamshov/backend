@@ -34379,10 +34379,23 @@ function () {
   return ShovItemManager;
 }();
 
+var Cell = function Cell(layer, rpos) {
+  _classCallCheck(this, Cell);
+};
+
 var HeatMap = function HeatMap(floor) {
   _classCallCheck(this, HeatMap);
 
   this.floor = floor;
+  this.grid = [];
+
+  for (var i = 0; i < 40; i++) {
+    this.grid.push([]);
+
+    for (var j = 0; j < 60; j++) {
+      this.grid[i].push(new Cell(floor.layer, new Vec2(i, j)));
+    }
+  }
 };
 
 var Floor = function Floor(dangermap, src) {

@@ -31,13 +31,14 @@ func main() {
 	InitSensorService()
 	defer DisconnectSensorService()
 
-	buildings := make(map[string]interface{})
+	buildings = make(map[string]*Building)
 	buildings["eb2"] = initBuilding("eb2")
 
 	e.PUT("/api/getpath/:building/:floor/:id", api_getPath)
 	e.GET("/api/emergency/:building", api_EmergencyStatus)
 
 	e.PUT("/getpath/:id", api_getPath_legacy)
+	e.PUT("/getpath", api_getPath_legacy2)
 	e.GET("/emergency", api_EmergencyStatus_legacy)
 
 	e.Logger.Fatal(e.Start(":62027"))
@@ -49,8 +50,7 @@ func api_EmergencyStatus(c echo.Context) error {
 }
 
 func api_EmergencyStatus_legacy(c echo.Context) error {
-	buildingID := "eb2"
-	return c.JSON(http.StatusOK, buildings[buildingID].emergency)
+	return c.JSON(http.StatusOK, true)
 }
 
 func api_getPath(c echo.Context) error {
@@ -81,9 +81,30 @@ func api_getPath_legacy(c echo.Context) error {
 	body, _ := ioutil.ReadAll(c.Request().Body)
 	json.Unmarshal(body, &input)
 
+	//buildingID := "eb2"
+	//floorID := "L1"
+	id := c.Param("id")
+
+	graph := g
+
+	RedisSetInterface(fmt.Sprintf("eb2:1:users:%s", id), input)
+
+	x := input["x"].(float64)
+	y := input["y"].(float64)
+
+	return c.JSON(http.StatusOK, graph.getPathXY(x, y))
+}
+
+func api_getPath_legacy2(c echo.Context) error {
+	var input map[string]interface{}
+	//var paths map[string]interface{}
+
+	body, _ := ioutil.ReadAll(c.Request().Body)
+	json.Unmarshal(body, &input)
+
 	buildingID := "eb2"
 	floorID := "L1"
-	id := c.Param("id")
+	id := "asdfasdfasdf"
 
 	graph := buildings[buildingID].floors[floorID].graph
 
