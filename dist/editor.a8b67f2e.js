@@ -34436,10 +34436,12 @@ function () {
     var _this3 = this;
 
     var src = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
+    var graphID = arguments.length > 2 ? arguments[2] : undefined;
 
     _classCallCheck(this, ShovGraph);
 
     this.floor = floor;
+    this.graphID = graphID;
     this.nodes = new Map();
     this.nindex = 0;
     this.nodeType = '';
@@ -34596,7 +34598,7 @@ function () {
       var json = '{"nodes":' + JSON.stringify(Array.from(this.nodes.values())) + '}';
 
       _jquery.default.ajax({
-        url: url,
+        url: "http://omaraa.ddns.net:62027/db/graphs/" + this.graphID,
         type: 'PUT',
         data: json
       });
@@ -34876,7 +34878,7 @@ function () {
     this.beacons = new ShovItemManager(this, "beacons", "blue");
     this.pies = new ShovItemManager(this, "pies", "#b3446c");
     this.esp32 = new ShovItemManager(this, "esp32", "red");
-    this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+    this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1", "eb2_L1");
   }
 
   _createClass(Floor, [{
@@ -34893,7 +34895,8 @@ function () {
         data: JSON.stringify({
           "floors": {
             "L1": {
-              "image": "L1_Black.png"
+              "image": "L1_Black.png",
+              "graph": this.graph.graphID
             }
           }
         }),
@@ -35054,7 +35057,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "53577" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55558" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

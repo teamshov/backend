@@ -335,17 +335,63 @@ func RedisGetString(key string) (string, error) {
 	return f, nil
 }
 
-func RedisSetInterface(key string, f map[string]interface{}) error {
+func RedisSetJSON(key string, f interface{}) error {
 	r, err := redis.Dial("tcp", ":6379")
 	if err != nil {
 		return err
 	}
 	defer r.Close()
 
-	_, err = r.Do("SET", key, f)
+	d, err := json.Marshal(f)
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Do("SET", key, string(d))
+	if err != nil {
+		return err
+	}
+
+	_, err = r.Do("EXPIRE", key, "5")
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func RedisGetJSON(key string) (map[string]interface{}, error) {
+	r, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	mi, err := redis.String(r.Do("GET", key))
+	if err != nil {
+		return nil, err
+	}
+
+	var data map[string]interface{}
+	err = json.Unmarshal([]byte(mi), &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func RedisGetKeys(input string) ([]string, error) {
+	r, err := redis.Dial("tcp", ":6379")
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	vals, err := redis.Strings(r.Do("KEYS", input))
+	if err != nil {
+		return nil, err
+	}
+
+	return vals, nil
 }

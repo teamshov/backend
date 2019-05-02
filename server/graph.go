@@ -189,7 +189,7 @@ func (graph *Graph) getColorOfPath(colorpath *ColorPath) string {
 }
 
 func (d *IOTDevice) updateDangerLevel() {
-	topic := fmt.Sprintf("%s:%s:dangerlevel", d.deviceType, d.deviceID)
+	topic := fmt.Sprintf("device:%s:%s:dangerlevel", d.deviceType, d.deviceID)
 	dls, err := RedisGetString(topic)
 	if err != nil {
 		//fmt.Printf("%v %v %f\n", err, topic, dls)

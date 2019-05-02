@@ -53,5 +53,5 @@ func getMaxExitOccupation() int {
 }
 
 func getMaxDangerLevel() float64 {
-	return 0.5
+	return 0.25
 }

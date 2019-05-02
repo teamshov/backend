@@ -35,75 +35,8 @@ const toPos = function (pos: Vec2): Vec2 {
 
 }
 
-
-class ELabel {
-    label: any;
-    text: any;
-    tag: any;
-
-    constructor(pos: Vec2, txt: string, fillColor: string) {
-        this.text = new Konva.Text({
-            text: txt,
-            fontFamily: 'Calibri',
-            fontSize: 18,
-            padding: 5,
-            fill: 'white'
-        });
-
-        this.tag = new Konva.Tag({
-            fill: fillColor,
-            pointerDirection: 'down',
-            pointerWidth: 10,
-            pointerHeight: 10,
-            lineJoin: 'round',
-            shadowColor: 'black',
-            shadowBlur: 10,
-            shadowOpacity: 0.5
-        });
-
-        this.label = new Konva.Label({
-            x: pos.x,
-            y: pos.y,
-        });
-
-
-        this.label.add(this.tag);
-        this.label.add(this.text);
-    }
-}
-
-class ShovItem {
-    label: ELabel;
-    constructor(public doc: any, color: string) {
-        let pos = new Vec2(doc["xpos"], doc["ypos"]);
-        this.label = new ELabel(toKPos(pos), doc["_id"], color);
-    }
-
-    getKonvaObj() {
-        return this.label.label;
-    }
-
-    save(url : any) {
-        let kpos = this.label.label.position()
-        let pos = toPos(new Vec2(kpos.x, kpos.y));
-        $.ajax({
-            url: url, 
-            type: 'PUT',
-            data: JSON.stringify({"xpos": pos.x, "ypos": pos.y, "building": "eb2", "floor": "L1"}),
-            success: () => {console.log("save successful")},
-            error: () => {console.error("save failed")}
-          });
-    }
-}
-
 class ShovItemManager {
-    layer: any;
-    ShovItems: ShovItem[] = [];
-    shovDocs: any;
-
     constructor(public floor: Floor, public dburl: string, public color: string) {
-        this.layer = new Konva.Layer({});
-        floor.dangermap.stage.add(this.layer);
         $.get('http://omaraa.ddns.net:62027/db/all/' + dburl, (resp : any) => this.loadItems(resp));
     }
 
@@ -115,11 +48,11 @@ class ShovItemManager {
     }
 
     loadItem(doc : any) {
-        let item = new ShovItem(doc, this.color);
-        this.ShovItems.push(item);
-        this.layer.add(item.getKonvaObj());
-        this.layer.draw();
-        this.shovDocs[doc["_id"]] = doc
+        if(this.floor.items[this.dburl] == null) {
+            this.floor.items[this.dburl] = {}
+        }
+        this.floor.items[this.dburl][doc["_id"]] = doc;
+        this.floor.items[this.dburl][doc["_id"]]["dangerlevel"] = 0.0
     }
 
 }
@@ -128,8 +61,57 @@ class Cell {
     konvaObj : any;
     value : number;
 
-    constructor(layer : any, rpos: Vec2) {
+    constructor(layer : any, public rpos: Vec2) {
+        let kpos = toKPos(rpos);
+        this.konvaObj = new Konva.Rect({
+            x: kpos.x,
+            y: kpos.y,
+            width:15,
+            height:15,
+            fill: 'blue'
+        })
 
+        layer.add(this.konvaObj)
+    }
+
+    update(floor : Floor) {
+        let v = 0;
+        for(let dt in floor.items) {
+            for(let d in floor.items[dt]) {
+                let obj = floor.items[dt][d]
+                if(obj["dangerlevel"] == null) {
+                    continue;
+                }
+                let dpos = new Vec2(obj["xpos"], obj["ypos"])
+                let dangerlevel = obj["dangerlevel"]
+                v += this.probabilityFunc(this.rpos, dpos, dangerlevel);
+            }
+        }
+        let p = 0;
+        for(let pid in floor.positions) {
+            let pos = floor.positions[pid]
+            p += this.peopleProbabilityFunc(this.rpos, pos, 1);
+        }
+        this.konvaObj.fill(this.heatMapColorforValue(v, p))
+    }
+
+    probabilityFunc(upos:Vec2, bpos:Vec2, dangerlevel:number) {
+        var dist = Math.sqrt((upos.x-bpos.x) ** 2 + (upos.y - bpos.y)**2);
+        var A = Math.exp(-((dist)**2)/((2)**2));
+        return A*dangerlevel;
+    }
+
+    peopleProbabilityFunc(upos:Vec2, bpos:Vec2, dangerlevel:number) {
+        var dist = Math.sqrt((upos.x-bpos.x) ** 2 + (upos.y - bpos.y)**2);
+        var A = Math.exp(-((dist)**2)/((0.8)**2));
+        return A*dangerlevel;
+    }
+      
+    heatMapColorforValue(dl : number, pl : number){
+        var r = 255* (1-pl)
+        var g = ((1-dl) * 255)* (1-pl);
+        var b = ((1-dl) * 255 )
+        return "rgb(" + r + ", "+g+","+ b+")";
     }
 }
 
@@ -140,13 +122,61 @@ class HeatMap {
 
     constructor(public floor : Floor) {
         this.grid = []
-        for(let i = 0; i < 40; i++) {
+        for(let i = 0; i < 41; i++) {
             this.grid.push([])
-            for(let j = 0; j < 60; j++) {
+            for(let j = 0; j < 57; j++) {
                 this.grid[i].push(new Cell(floor.layer, new Vec2(i,j)))
             }
         }
+        floor.layer.draw()
 
+        this.updateInterval = setInterval(()=>{this.update()}, 1000);
+    }
+
+    update() {
+
+        fetch("http://omaraa.ddns.net:62027/api/data/eb2/L1").then(
+            (d) => {
+                d.json().then((data)=>{
+                    this.updateData(data);
+                })
+            },
+            (error) => {
+                console.error(error)
+            }
+        ).catch((err)=>{
+            console.error(err)
+        })
+
+        for(let i = 0; i < 41; i++) {
+            for(let j = 0; j < 57; j++) {
+                this.grid[i][j].update(this.floor);
+            }
+        }
+
+        this.floor.layer.draw()
+    }
+
+    updateData(data:any) {
+        this.floor.positions = []
+
+        for(let k in data) {
+            let keys = k.split(":")
+            if(keys[0] == "device") {
+                let deviceType =keys[1]
+                let deviceID = keys[2]
+                let dangerlevel = data[k]
+                
+                if(this.floor.items[deviceType] == null)
+                    continue;
+                if(this.floor.items[deviceType][deviceID] == null)
+                    continue;
+
+                this.floor.items[deviceType][deviceID]["dangerlevel"] = dangerlevel
+            } else if(keys[0] == "users") {
+                this.floor.positions.push(data[k]);
+            }
+        }
     }
 }
 
@@ -158,6 +188,11 @@ class Floor {
     beacons: ShovItemManager;
     pies: ShovItemManager;
     esp32: ShovItemManager;
+
+    items : any = {};
+
+    positions : any = []
+
     heatmap : HeatMap;
     constructor(public dangermap: DangerMap, public src: string) {
         this.layer = new Konva.Layer({});
@@ -175,15 +210,13 @@ class Floor {
                 width: this.imageObj.width*iscale.x/11.25,
                 height: this.imageObj.height*iscale.y/11.25,
                 //draggable: true
-                opacity: 0.5
+                opacity: 0.8
             });
             this.layer.add(this.floorplan);
             this.layer.draw();
         };
         this.imageObj.src = src
 
-        this.beacons = new ShovItemManager(this, "beacons", "black");
-        this.pies = new ShovItemManager(this, "pies", "red");
         this.esp32 = new ShovItemManager(this, "esp32", "blue");
         this.heatmap = new HeatMap(this);
         //this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");

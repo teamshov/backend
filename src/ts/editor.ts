@@ -199,8 +199,9 @@ class ShovGraph {
     dragged : boolean = false;
 
     selectednode : Node = null;
+    
 
-    constructor(public floor : Floor, src : string = null) {
+    constructor(public floor : Floor, src : string = null, public graphID:string) {
         this.layer = new Konva.Layer({});
         floor.editor.stage.add(this.layer);
         
@@ -281,7 +282,7 @@ class ShovGraph {
     save(url : any) {
         let json = '{"nodes":'+JSON.stringify(Array.from(this.nodes.values())) + '}';
         $.ajax({
-            url: url, 
+            url: "http://omaraa.ddns.net:62027/db/graphs/" + this.graphID, 
             type: 'PUT',
             data: json
           });
@@ -429,7 +430,7 @@ class Floor {
         this.beacons = new ShovItemManager(this, "beacons", "blue");
         this.pies = new ShovItemManager(this, "pies", "#b3446c");
         this.esp32 = new ShovItemManager(this, "esp32", "red");
-        this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+        this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1", "eb2_L1");
     }
 
     save() {
@@ -441,7 +442,9 @@ class Floor {
             url: "http://omaraa.ddns.net:62027/db/buildings/eb2", 
             type: 'PUT',
             data: JSON.stringify({ "floors": {
-                "L1": {"image": "L1_Black.png"}
+                "L1": {"image": "L1_Black.png",
+                "graph": this.graph.graphID
+            }
             }
             }),
             success: () => {console.log("save successful")},

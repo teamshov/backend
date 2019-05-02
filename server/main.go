@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -36,6 +37,7 @@ func main() {
 
 	e.PUT("/api/getpath/:building/:floor/:id", api_getPath)
 	e.GET("/api/emergency/:building", api_EmergencyStatus)
+	e.GET("/api/data/:building/:floor", api_getData)
 
 	e.PUT("/getpath/:id", api_getPath_legacy)
 	e.PUT("/getpath", api_getPath_legacy2)
@@ -50,7 +52,8 @@ func api_EmergencyStatus(c echo.Context) error {
 }
 
 func api_EmergencyStatus_legacy(c echo.Context) error {
-	return c.JSON(http.StatusOK, true)
+	buildingID := "eb2"
+	return c.JSON(http.StatusOK, buildings[buildingID].emergency)
 }
 
 func api_getPath(c echo.Context) error {
@@ -66,7 +69,7 @@ func api_getPath(c echo.Context) error {
 
 	graph := buildings[buildingID].floors[floorID].graph
 
-	RedisSetInterface(fmt.Sprintf("eb2:1:users:%s", id), input)
+	RedisSetJSON(fmt.Sprintf("users:%s:%s:%s", buildingID, floorID, id), input)
 
 	x := input["x"].(float64)
 	y := input["y"].(float64)
@@ -87,7 +90,7 @@ func api_getPath_legacy(c echo.Context) error {
 
 	graph := g
 
-	RedisSetInterface(fmt.Sprintf("eb2:1:users:%s", id), input)
+	RedisSetJSON(fmt.Sprintf("users:eb2:L1:%s", id), input)
 
 	x := input["x"].(float64)
 	y := input["y"].(float64)
@@ -108,10 +111,43 @@ func api_getPath_legacy2(c echo.Context) error {
 
 	graph := buildings[buildingID].floors[floorID].graph
 
-	RedisSetInterface(fmt.Sprintf("eb2:1:users:%s", id), input)
+	RedisSetJSON(fmt.Sprintf("users:eb2:L1:%s", id), input)
 
 	x := input["x"].(float64)
 	y := input["y"].(float64)
 
 	return c.JSON(http.StatusOK, graph.getPathXY(x, y))
+}
+
+func api_getData(c echo.Context) error {
+
+	dkeys, err := RedisGetKeys("device:*:*:dangerlevel")
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	var data map[string]interface{}
+	data = make(map[string]interface{})
+	for _, v := range dkeys {
+		dls, _ := RedisGetString(v)
+		dl, _ := strconv.ParseFloat(dls, 64)
+
+		data[v] = dl
+	}
+
+	buildingID := c.Param("building")
+	floorID := c.Param("floor")
+
+	ukeys, err := RedisGetKeys(fmt.Sprintf("users:%s:%s:*", buildingID, floorID))
+	if err != nil {
+		return c.String(http.StatusInternalServerError, err.Error())
+	}
+	for _, v := range ukeys {
+
+		userPos, _ := RedisGetJSON(v)
+		fmt.Println(userPos)
+		data[v] = userPos
+	}
+
+	return c.JSON(http.StatusOK, data)
 }
