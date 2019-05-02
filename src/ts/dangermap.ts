@@ -37,13 +37,13 @@ const toPos = function (pos: Vec2): Vec2 {
 
 class ShovItemManager {
     constructor(public floor: Floor, public dburl: string, public color: string) {
-        $.get('http://omaraa.ddns.net:62027/db/all/' + dburl, (resp : any) => this.loadItems(resp));
+        $.get('http://localhost:62027/db/all/' + dburl, (resp : any) => this.loadItems(resp));
     }
 
     loadItems(resp : any) {
         let ids: string[] = resp;
         for (let id of ids) {
-            $.get('http://omaraa.ddns.net:62027/db/' + this.dburl + '/' + id, (resp) => this.loadItem(resp));
+            $.get('http://localhost:62027/db/' + this.dburl + '/' + id, (resp) => this.loadItem(resp));
         }
     }
 
@@ -135,7 +135,7 @@ class HeatMap {
 
     update() {
 
-        fetch("http://omaraa.ddns.net:62027/api/data/eb2/L1").then(
+        fetch("http://localhost:62027/api/data/eb2/L1").then(
             (d) => {
                 d.json().then((data)=>{
                     this.updateData(data);
@@ -219,7 +219,7 @@ class Floor {
 
         this.esp32 = new ShovItemManager(this, "esp32", "blue");
         this.heatmap = new HeatMap(this);
-        //this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+        //this.graph = new ShovGraph(this, "http://localhost:62027/db/graphs/eb2_L1");
     }
 
 }
@@ -242,7 +242,7 @@ class DangerMap {
 
 
         this.stage.add(layer);
-        this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1_Black.png");
+        this.floor = new Floor(this, "http://localhost:62027/db/buildings/eb2/L1_Black.png");
         this.stage.draw();
     }
 }

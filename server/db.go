@@ -23,7 +23,7 @@ func InitDBService(e *echo.Echo) {
 }
 
 func DBGet(dbname string, id string) (map[string]interface{}, error) {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		panic(err)
 	}
@@ -47,7 +47,7 @@ func DBGet(dbname string, id string) (map[string]interface{}, error) {
 }
 
 func apidbGet(c echo.Context) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -72,7 +72,7 @@ func apidbGet(c echo.Context) error {
 }
 
 func apidbGetAttch(c echo.Context) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -108,7 +108,7 @@ func apidbGetAttch(c echo.Context) error {
 }
 
 func DBPut(dbparam string, idparam string, data map[string]interface{}) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func DBPut(dbparam string, idparam string, data map[string]interface{}) error {
 }
 
 func apidbPut(c echo.Context) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -203,7 +203,7 @@ func apidbPut(c echo.Context) error {
 }
 
 func apidbDelete(c echo.Context) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}
@@ -233,7 +233,7 @@ func apidbDelete(c echo.Context) error {
 }
 
 func DBAll(dbparam string) ([]string, error) {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func DBAll(dbparam string) ([]string, error) {
 }
 
 func apidbAll(c echo.Context) error {
-	client, err := kivik.New(context.TODO(), "couch", "http://admin:seniorshov@omaraa.ddns.net:5984/")
+	client, err := kivik.New(context.TODO(), "couch", "http://localhost:5984/")
 	if err != nil {
 		return c.String(http.StatusInternalServerError, err.Error())
 	}

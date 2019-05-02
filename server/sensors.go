@@ -70,7 +70,7 @@ func InitSensorService() {
 
 	devicesSettings, _ = DBGet("system", "devices")
 
-	opts = MQTT.NewClientOptions().AddBroker("tcp://omaraa.ddns.net:1883")
+	opts = MQTT.NewClientOptions().AddBroker("tcp://localhost:1883")
 	opts.SetClientID("backend")
 	opts.SetDefaultPublishHandler(f)
 	opts.SetConnectionLostHandler(connectionLostHandler)

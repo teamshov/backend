@@ -34252,7 +34252,7 @@ function () {
     this.dburl = dburl;
     this.color = color;
 
-    _jquery.default.get('http://omaraa.ddns.net:62027/db/all/' + dburl, function (resp) {
+    _jquery.default.get('http://localhost:62027/db/all/' + dburl, function (resp) {
       return _this.loadItems(resp);
     });
   }
@@ -34271,7 +34271,7 @@ function () {
         for (var _iterator = ids[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
           var id = _step.value;
 
-          _jquery.default.get('http://omaraa.ddns.net:62027/db/' + this.dburl + '/' + id, function (resp) {
+          _jquery.default.get('http://localhost:62027/db/' + this.dburl + '/' + id, function (resp) {
             return _this2.loadItem(resp);
           });
         }
@@ -34408,7 +34408,7 @@ function () {
     value: function update() {
       var _this4 = this;
 
-      fetch("http://omaraa.ddns.net:62027/api/data/eb2/L1").then(function (d) {
+      fetch("http://localhost:62027/api/data/eb2/L1").then(function (d) {
         d.json().then(function (data) {
           _this4.updateData(data);
         });
@@ -34484,7 +34484,7 @@ var Floor = function Floor(dangermap, src) {
 
   this.imageObj.src = src;
   this.esp32 = new ShovItemManager(this, "esp32", "blue");
-  this.heatmap = new HeatMap(this); //this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+  this.heatmap = new HeatMap(this); //this.graph = new ShovGraph(this, "http://localhost:62027/db/graphs/eb2_L1");
 };
 
 var DangerMap = function DangerMap(container) {
@@ -34501,7 +34501,7 @@ var DangerMap = function DangerMap(container) {
   console.log("Konva initialized!");
   var layer = new _konva.default.Layer({});
   this.stage.add(layer);
-  this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1_Black.png");
+  this.floor = new Floor(this, "http://localhost:62027/db/buildings/eb2/L1_Black.png");
   this.stage.draw();
 };
 
@@ -34579,7 +34579,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "56904" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59418" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};

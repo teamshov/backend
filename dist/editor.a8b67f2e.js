@@ -34598,7 +34598,7 @@ function () {
       var json = '{"nodes":' + JSON.stringify(Array.from(this.nodes.values())) + '}';
 
       _jquery.default.ajax({
-        url: "http://omaraa.ddns.net:62027/db/graphs/" + this.graphID,
+        url: "http://localhost:62027/db/graphs/" + this.graphID,
         type: 'PUT',
         data: json
       });
@@ -34768,7 +34768,7 @@ function () {
     this.layer = new _konva.default.Layer({});
     floor.editor.stage.add(this.layer);
 
-    _jquery.default.get('http://omaraa.ddns.net:62027/db/all/' + dburl, function (resp) {
+    _jquery.default.get('http://localhost:62027/db/all/' + dburl, function (resp) {
       return _this4.loadItems(resp);
     });
   }
@@ -34787,7 +34787,7 @@ function () {
         for (var _iterator5 = ids[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
           var id = _step5.value;
 
-          _jquery.default.get('http://omaraa.ddns.net:62027/db/' + this.dburl + '/' + id, function (resp) {
+          _jquery.default.get('http://localhost:62027/db/' + this.dburl + '/' + id, function (resp) {
             return _this5.loadItem(resp);
           });
         }
@@ -34824,7 +34824,7 @@ function () {
       try {
         for (var _iterator6 = this.ShovItems[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
           var i = _step6.value;
-          i.save('http://omaraa.ddns.net:62027/db/' + this.dburl + '/' + i.doc['_id']);
+          i.save('http://localhost:62027/db/' + this.dburl + '/' + i.doc['_id']);
         }
       } catch (err) {
         _didIteratorError6 = true;
@@ -34878,7 +34878,7 @@ function () {
     this.beacons = new ShovItemManager(this, "beacons", "blue");
     this.pies = new ShovItemManager(this, "pies", "#b3446c");
     this.esp32 = new ShovItemManager(this, "esp32", "red");
-    this.graph = new ShovGraph(this, "http://omaraa.ddns.net:62027/db/graphs/eb2_L1", "eb2_L1");
+    this.graph = new ShovGraph(this, "http://localhost:62027/db/graphs/eb2_L1", "eb2_L1");
   }
 
   _createClass(Floor, [{
@@ -34887,10 +34887,10 @@ function () {
       this.beacons.save();
       this.pies.save();
       this.esp32.save();
-      this.graph.save("http://omaraa.ddns.net:62027/db/graphs/eb2_L1");
+      this.graph.save("http://localhost:62027/db/graphs/eb2_L1");
 
       _jquery.default.ajax({
-        url: "http://omaraa.ddns.net:62027/db/buildings/eb2",
+        url: "http://localhost:62027/db/buildings/eb2",
         type: 'PUT',
         data: JSON.stringify({
           "floors": {
@@ -34940,7 +34940,7 @@ function () {
       strokeWidth: 1
     }));
     this.stage.add(layer);
-    this.floor = new Floor(this, "http://omaraa.ddns.net:62027/db/buildings/eb2/L1_Black.png");
+    this.floor = new Floor(this, "http://localhost:62027/db/buildings/eb2/L1_Black.png");
     this.stage.draw();
 
     window.save = function () {
@@ -35057,7 +35057,7 @@ var parent = module.bundle.parent;
 if ((!parent || !parent.isParcelRequire) && typeof WebSocket !== 'undefined') {
   var hostname = "" || location.hostname;
   var protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-  var ws = new WebSocket(protocol + '://' + hostname + ':' + "55558" + '/');
+  var ws = new WebSocket(protocol + '://' + hostname + ':' + "59520" + '/');
 
   ws.onmessage = function (event) {
     checkedAssets = {};
