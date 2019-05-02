@@ -282,7 +282,7 @@ class ShovGraph {
     save(url : any) {
         let json = '{"nodes":'+JSON.stringify(Array.from(this.nodes.values())) + '}';
         $.ajax({
-            url: "http://localhost:62027/db/graphs/" + this.graphID, 
+            url: "/db/graphs/" + this.graphID, 
             type: 'PUT',
             data: json
           });
@@ -376,13 +376,13 @@ class ShovItemManager {
     constructor(public floor: Floor, public dburl: string, public color: string) {
         this.layer = new Konva.Layer({});
         floor.editor.stage.add(this.layer);
-        $.get('http://localhost:62027/db/all/' + dburl, (resp : any) => this.loadItems(resp));
+        $.get('/db/all/' + dburl, (resp : any) => this.loadItems(resp));
     }
 
     loadItems(resp : any) {
         let ids: string[] = resp;
         for (let id of ids) {
-            $.get('http://localhost:62027/db/' + this.dburl + '/' + id, (resp) => this.loadItem(resp));
+            $.get('/db/' + this.dburl + '/' + id, (resp) => this.loadItem(resp));
         }
     }
 
@@ -395,7 +395,7 @@ class ShovItemManager {
 
     save() {
         for(let i of this.ShovItems) {
-            i.save('http://localhost:62027/db/' + this.dburl + '/' + i.doc['_id']);
+            i.save('/db/' + this.dburl + '/' + i.doc['_id']);
         }
     }
 }
@@ -430,16 +430,16 @@ class Floor {
         this.beacons = new ShovItemManager(this, "beacons", "blue");
         this.pies = new ShovItemManager(this, "pies", "#b3446c");
         this.esp32 = new ShovItemManager(this, "esp32", "red");
-        this.graph = new ShovGraph(this, "http://localhost:62027/db/graphs/eb2_L1", "eb2_L1");
+        this.graph = new ShovGraph(this, "/db/graphs/eb2_L1", "eb2_L1");
     }
 
     save() {
         this.beacons.save();
         this.pies.save();
         this.esp32.save();
-        this.graph.save("http://localhost:62027/db/graphs/eb2_L1");
+        this.graph.save("/db/graphs/eb2_L1");
         $.ajax({
-            url: "http://localhost:62027/db/buildings/eb2", 
+            url: "/db/buildings/eb2", 
             type: 'PUT',
             data: JSON.stringify({ "floors": {
                 "L1": {"image": "L1_Black.png",
@@ -481,7 +481,7 @@ class Editor {
         }));
 
         this.stage.add(layer);
-        this.floor = new Floor(this, "http://localhost:62027/db/buildings/eb2/L1_Black.png");
+        this.floor = new Floor(this, "/db/buildings/eb2/L1_Black.png");
         
 
         this.stage.draw();
